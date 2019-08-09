@@ -130,9 +130,18 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
         return "x509";
     }
 
+    /**
+     * 处理身份验证
+     *
+     * @param cnxn
+     *                the cnxn that received the authentication information.收到验证信息的cnxn。
+     * @param authData
+     *                the authentication data received.收到的验证数据。
+     * @return
+     */
     @Override
-    public KeeperException.Code handleAuthentication(ServerCnxn cnxn,
-                                                     byte[] authData) {
+    public KeeperException.Code handleAuthentication(ServerCnxn cnxn, byte[] authData) {
+        // 获得客户证书链
         X509Certificate[] certChain
                 = (X509Certificate[]) cnxn.getClientCertificateChain();
 
@@ -141,7 +150,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
         }
 
         if (trustManager == null) {
-            LOG.error("No trust manager available to authenticate session 0x{}",
+            LOG.error("No trust manager available to authenticate session 0x{} 没有可用于验证会话0x {}的信任管理器",
                     Long.toHexString(cnxn.getSessionId()));
             return KeeperException.Code.AUTHFAILED;
         }
@@ -150,6 +159,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
 
         try {
             // Authenticate client certificate
+            // 验证客户端证书，这里只要不报错就验证通过了
             trustManager.checkClientTrusted(certChain,
                     clientCert.getPublicKey().getAlgorithm());
         } catch (CertificateException ce) {
@@ -160,6 +170,8 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
 
         String clientId = getClientId(clientCert);
 
+        // ZOOKEEPER_X509AUTHENTICATIONPROVIDER_SUPERUSER = "zookeeper.X509AuthenticationProvider.superUser"
+        // 超级用户
         if (clientId.equals(System.getProperty(
                 ZOOKEEPER_X509AUTHENTICATIONPROVIDER_SUPERUSER))) {
             cnxn.addAuthInfo(new Id("super", clientId));

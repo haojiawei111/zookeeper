@@ -125,6 +125,7 @@ public class NettyServerCnxn extends ServerCnxn {
             // Since we don't check on the futures created by write calls to the channel complete we need to make sure
             // that all writes have been completed before closing the channel or we risk data loss
             // See: http://lists.jboss.org/pipermail/netty-users/2009-August/001122.html
+			// 第一种方法：写一个空的buf，并刷新写出区域。完成后关闭sock channel连接。
             channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) {
@@ -195,6 +196,7 @@ public class NettyServerCnxn extends ServerCnxn {
         }
     };
 
+    // 写出消息并发送给客户端
     @Override
     public void sendBuffer(ByteBuffer... buffers) {
         if (buffers.length == 1 && buffers[0] == ServerCnxnFactory.closeConn) {
@@ -360,7 +362,7 @@ public class NettyServerCnxn extends ServerCnxn {
                         ByteBufUtil.hexDump(queuedBuffer));
             }
         } else {
-            LOG.debug("not throttled");
+            LOG.debug("not throttled 没有受到限制");
             if (queuedBuffer != null) {
                 appendToQueuedBuffer(buf.retainedDuplicate());
                 processQueuedBuffer();

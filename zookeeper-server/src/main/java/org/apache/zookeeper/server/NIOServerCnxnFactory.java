@@ -76,17 +76,13 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
      * Defaults to using 2 selector threads with 8 cores and 4 with 32 cores.
      * Expressed as sqrt(numCores/2). Must have at least 1 selector thread.
      */
-    public static final String ZOOKEEPER_NIO_NUM_SELECTOR_THREADS =
-        "zookeeper.nio.numSelectorThreads";
+    public static final String ZOOKEEPER_NIO_NUM_SELECTOR_THREADS = "zookeeper.nio.numSelectorThreads";
     /** Default: 2 * numCores */
-    public static final String ZOOKEEPER_NIO_NUM_WORKER_THREADS =
-        "zookeeper.nio.numWorkerThreads";
+    public static final String ZOOKEEPER_NIO_NUM_WORKER_THREADS = "zookeeper.nio.numWorkerThreads";
     /** Default: 64kB */
-    public static final String ZOOKEEPER_NIO_DIRECT_BUFFER_BYTES =
-        "zookeeper.nio.directBufferBytes";
+    public static final String ZOOKEEPER_NIO_DIRECT_BUFFER_BYTES = "zookeeper.nio.directBufferBytes";
     /** Default worker pool shutdown timeout in ms: 5000 (5s) */
-    public static final String ZOOKEEPER_NIO_SHUTDOWN_TIMEOUT =
-        "zookeeper.nio.shutdownTimeout";
+    public static final String ZOOKEEPER_NIO_SHUTDOWN_TIMEOUT = "zookeeper.nio.shutdownTimeout";
 
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -120,6 +116,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
      * AbstractSelectThread is an abstract base class containing a few bits
      * of code shared by the AcceptThread (which selects on the listen socket)
      * and SelectorThread (which selects on client connections) classes.
+     * AbstractSelectThread是一个抽象基类，包含AcceptThread（在侦听套接字上选择）和SelectorThread（在客户端连接上选择）类共享的几个代码。
      */
     private abstract class AbstractSelectThread extends ZooKeeperThread {
         protected final Selector selector;
@@ -177,6 +174,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     }
 
     /**
+     * 这个线程创建一个
      * There is a single AcceptThread which accepts new connections and assigns
      * them to a SelectorThread using a simple round-robin scheme to spread
      * them across the SelectorThreads. It enforces maximum number of
@@ -331,6 +329,8 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     }
 
     /**
+     * 这个线程创建numSelectorThreads个
+     *
      * The SelectorThread receives newly accepted connections from the
      * AcceptThread and is responsible for selecting for I/O readiness
      * across the connections. This thread is the only thread that performs
@@ -575,6 +575,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     }
 
     /**
+     * 这个线程创建一个
      * This thread is responsible for closing stale connections
      * so that connections on which no session is established are properly expired.
      * 此线程负责关闭过时连接，以便未建立会话的连接正确到期。
@@ -611,6 +612,8 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
      * by the worker threads (or the selector threads directly, if no worker
      * thread pool is created), we can create a fixed set of these to be
      * shared by connections.
+     * 我们使用此缓冲区来执行高效的套接字I/O.
+     * 因为I/O由工作线程（或直接选择器线程，如果没有创建工作者线程池）处理，我们可以创建一组固定的连接来共享。
      */
     private static final ThreadLocal<ByteBuffer> directBuffer =
         new ThreadLocal<ByteBuffer>() {
@@ -624,8 +627,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     }
 
     // ipMap is used to limit connections per IP   ipMap用于限制每个IP的连接
-    private final ConcurrentHashMap<InetAddress, Set<NIOServerCnxn>> ipMap =
-        new ConcurrentHashMap<InetAddress, Set<NIOServerCnxn>>( );
+    private final ConcurrentHashMap<InetAddress, Set<NIOServerCnxn>> ipMap = new ConcurrentHashMap<InetAddress, Set<NIOServerCnxn>>( );
 
     protected int maxClientCnxns = 60;
     int listenBacklog = -1;
@@ -652,8 +654,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
     private volatile boolean stopped = true;
     private ConnectionExpirerThread expirerThread;
     private AcceptThread acceptThread;
-    private final Set<SelectorThread> selectorThreads =
-        new HashSet<SelectorThread>();
+    private final Set<SelectorThread> selectorThreads = new HashSet<SelectorThread>();
 
     @Override
     public void configure(InetSocketAddress addr, int maxcc, int backlog, boolean secure) throws IOException {

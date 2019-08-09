@@ -309,6 +309,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
 
     @SuppressWarnings("unchecked")
     public SSLContextAndOptions createSSLContextAndOptions(ZKConfig config) throws SSLContextException {
+        // getConfigPrefix() + "context.supplier.class"
         final String supplierContextClassName = config.getProperty(sslContextSupplierClassProperty);
         if (supplierContextClassName != null) {
             if (LOG.isDebugEnabled()) {
@@ -377,7 +378,7 @@ public abstract class X509Util implements Closeable, AutoCloseable {
                 throw new SSLContextException("Bad value for " + sslTruststoreTypeProperty + ": " + trustStoreTypeProp, e);
             }
         }
-
+        // DEFAULT_PROTOCOL = "TLSv1.2"
         String protocol = config.getProperty(sslProtocolProperty, DEFAULT_PROTOCOL);
         try {
             SSLContext sslContext = SSLContext.getInstance(protocol);

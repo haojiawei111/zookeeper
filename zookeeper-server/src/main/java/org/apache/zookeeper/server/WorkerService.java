@@ -38,14 +38,22 @@ import org.slf4j.LoggerFactory;
  * ExecutorService.
  * WorkerService是用于运行任务的工作线程池，使用一个或多个ExecutorServices实现。
  * WorkerService可以支持可分配的线程，它通过创建N个单独的线程ExecutorServices，
- * 或不可分配的线程来完成，它通过创建单个N线程* ExecutorService来完成。
+ * 或不可分配的线程来完成，它通过创建单个N线程 ExecutorService来完成。
+ *
  *   - NIOServerCnxnFactory uses a non-assignable WorkerService because the
  *     socket IO requests are order independent and allowing the
  *     ExecutorService to handle thread assignment gives optimal performance.
+ *   -  NIOServerCnxnFactory使用不可分配的WorkerService，
+ *      因为套接字IO请求是与顺序无关的，并允许 ExecutorService处理线程分配以获得最佳性能。
+ *
  *   - CommitProcessor uses an assignable WorkerService because requests for
  *     a given session must be processed in order.
+ *   -  CommitProcessor使用可分配的WorkerService，
+ *       因为必须按顺序处理对给定会话的请求。
  * ExecutorService provides queue management and thread restarting, so it's
  * useful even with a single thread.
+ * ExecutorService提供队列管理和线程重启，因此即使使用单个线程也很有用。
+ *
  */
 public class WorkerService {
     private static final Logger LOG = LoggerFactory.getLogger(WorkerService.class);

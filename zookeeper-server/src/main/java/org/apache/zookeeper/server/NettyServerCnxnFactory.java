@@ -122,14 +122,17 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                 return;
             }
             // 创建NettyServerCnxn，代表一个连接
-            NettyServerCnxn cnxn = new NettyServerCnxn(channel,
-                    zkServer, NettyServerCnxnFactory.this);
+            NettyServerCnxn cnxn = new NettyServerCnxn(channel, zkServer, NettyServerCnxnFactory.this);
+            // 为这个channel绑定一个NettyServerCnxn对象
             ctx.channel().attr(CONNECTION_ATTRIBUTE).set(cnxn);
 
             if (secure) {
+                // 这里是为了判断前一个ssl验证是否成功，如果成功或者失败都会执行自己定义的策略（CertificateVerifier）
                 SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
                 Future<Channel> handshakeFuture = sslHandler.handshakeFuture();
+                // 在SslHandler的handshakeFuture中增加监听者来对证书进行校验
                 handshakeFuture.addListener(new CertificateVerifier(sslHandler, cnxn));
+
             } else {
                 allChannels.add(ctx.channel());
                 // 把连接添加到cnxns和ipMap
@@ -209,7 +212,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                     }
                     NettyServerCnxn cnxn = ctx.channel().attr(CONNECTION_ATTRIBUTE).get();
                     if (cnxn == null) {
-                        LOG.error("channelRead() on a closed or closing NettyServerCnxn");
+                        LOG.error("channelRead() on a closed or closing NettyServerCnxn.关闭或关闭NettyServerCnxn上的channelRead（）");
                     } else {
                         // 处理消息
                         cnxn.processMessage((ByteBuf) msg);
@@ -248,8 +251,12 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
             }
 
             /**
+             * 这个是SSL验证的回调函数
              * Only allow the connection to stay open if certificate passes auth
              * 如果证书通过身份验证，则仅允许连接保持打开状态
+             *
+             * 当SslHandler中的handshake Future中的监听者被触发以后，由CertificateVerifier来对证书的合法性进行校验，
+             * 而CertificateVerifier对证书进行校验的操作是由X509AuthenticationProvider或者自定义的扩展实现类来完成
              */
             public void operationComplete(Future<Channel> future) throws SSLPeerUnverifiedException {
                 if (future.isSuccess()) {
@@ -259,11 +266,10 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                     }
                     SSLEngine eng = sslHandler.engine();
                     SSLSession session = eng.getSession();
+                    // 设置客户端证书链
                     cnxn.setClientCertificateChain(session.getPeerCertificates());
-
-                    String authProviderProp
-                            = System.getProperty(x509Util.getSslAuthProviderProperty(), "x509");
-
+                    // zookeeper.ssl.
+                    String authProviderProp = System.getProperty(x509Util.getSslAuthProviderProperty(), "x509");
                     X509AuthenticationProvider authProvider =
                             (X509AuthenticationProvider)
                                     ProviderRegistry.getProvider(authProviderProp);
@@ -274,10 +280,8 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                         return;
                     }
 
-                    if (KeeperException.Code.OK !=
-                            authProvider.handleAuthentication(cnxn, null)) {
-                        LOG.error("Authentication failed for session 0x{}",
-                                Long.toHexString(cnxn.getSessionId()));
+                    if (KeeperException.Code.OK != authProvider.handleAuthentication(cnxn, null)) {
+                        LOG.error("Authentication failed for session 0x{} - 会话0x{}的身份验证失败", Long.toHexString(cnxn.getSessionId()));
                         cnxn.close();
                         return;
                     }
@@ -326,6 +330,8 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
                         if (secure) {
+                            //先初始化SSLContext以及SSLEngine，然后构造SslHandler对象
+                            // 将构造的SslHandler对象设置到ChannelPipline中
                             initSSL(pipeline);
                         }
                         pipeline.addLast("servercnxnfactory", channelHandler);
@@ -337,12 +343,16 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
 
     private synchronized void initSSL(ChannelPipeline p)
             throws X509Exception, KeyManagementException, NoSuchAlgorithmException {
+        // 从配置的系统属性中获取AuthenticationProvider实现类
         String authProviderProp = System.getProperty(x509Util.getSslAuthProviderProperty());
         SSLContext sslContext;
         if (authProviderProp == null) {
+            // "TLSv1.2"
             sslContext = x509Util.getDefaultSSLContext();
         } else {
             sslContext = SSLContext.getInstance("TLSv1");
+            // 从ProviderRegistry中获取对应的AuthenticationProvider
+            // "zookeeper.ssl.authProvider"
             X509AuthenticationProvider authProvider =
                     (X509AuthenticationProvider)ProviderRegistry.getProvider(
                             System.getProperty(x509Util.getSslAuthProviderProperty(), "x509"));
@@ -354,14 +364,18 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                         "Could not create SSLContext with specified auth provider: " +
                         authProviderProp);
             }
-
+            // 将X509AuthenticationProvider中已经初始化的KeyManager和TrustManager设置到SSLContext中
             sslContext.init(new X509KeyManager[] { authProvider.getKeyManager() },
                             new X509TrustManager[] { authProvider.getTrustManager() },
                             null);
         }
 
         SSLEngine sslEngine = sslContext.createSSLEngine();
+        // 设置 SslEngine 是 client 或者是 server 模式
+        // 这里是 server 模式
         sslEngine.setUseClientMode(false);
+        // false为单向认证，true为双向认证
+        // 设置需要client认证
         sslEngine.setNeedClientAuth(true);
         // 向netty添加Ssl处理程序
         p.addLast("ssl", new SslHandler(sslEngine));
