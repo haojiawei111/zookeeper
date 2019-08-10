@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This class manages watches. It allows watches to be associated with a string
  * and removes watchers and their watches in addition to managing triggers.
+ * 服务端的WatchManager，管理Watcher。
  */
 //WatcherManager类用于管理watchers和相应的触发器。watchTable表示从节点路径到watcher集合的映射，而watch2Paths则表示从watcher到所有节点路径集合的映射。
 public class WatchManager implements IWatchManager {
@@ -47,11 +48,17 @@ public class WatchManager implements IWatchManager {
     private final Map<String, Set<Watcher>> watchTable = new HashMap<String, Set<Watcher>>();
     // watcher到节点路径的映射
     private final Map<Watcher, Set<String>> watch2Paths = new HashMap<Watcher, Set<String>>();
-    
+
+    /**
+     * size方法是同步的，因此在多线程环境下是安全的，
+     * 其主要作用是获取watchTable的大小，即遍历watchTable的值集合。
+     * @return
+     */
     @Override
     public synchronized int size(){
         int result = 0;
         for(Set<Watcher> watches : watchTable.values()) { // 遍历watchTable所有的值集合(HashSet<Watcher>集合)
+            // 每个集合大小累加
             result += watches.size();
         }
         return result;
@@ -61,6 +68,13 @@ public class WatchManager implements IWatchManager {
         return watcher instanceof ServerCnxn && ((ServerCnxn) watcher).isStale();
     }
 
+    /**
+     * addWatch是同步方法，线程安全
+     * @param path znode path
+     * @param watcher watcher object reference
+     *
+     * @return
+     */
     @Override
     public synchronized boolean addWatch(String path, Watcher watcher) {
         if (isDeadWatcher(watcher)) {
@@ -115,7 +129,13 @@ public class WatchManager implements IWatchManager {
         return triggerWatch(path, type, null);
     }
 
-    // 该方法主要用于触发watch事件，并对事件进行处理。
+    /**
+     * 该方法主要用于触发watch事件，并对事件进行处理。
+     * @param path znode path
+     * @param type the watch event type
+     * @param supress
+     * @return
+     */
     @Override
     public WatcherOrBitSet triggerWatch(String path, EventType type, WatcherOrBitSet supress) {
         // 根据事件类型、连接状态、节点路径创建WatchedEvent
@@ -123,7 +143,7 @@ public class WatchManager implements IWatchManager {
         Set<Watcher> watchers;
         synchronized (this) {
             // 从watcher表中移除path，并返回其对应的watcher集合
-            watchers = watchTable.remove(path); // 这里可以看出时间只要发生就会移除watch，所以需要发生回调之后反复注册
+            watchers = watchTable.remove(path); // 这里可以看出事件只要发生就会移除watch，所以需要发生回调之后反复注册
             if (watchers == null || watchers.isEmpty()) { // watcher集合为空
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logTraceMessage(LOG,

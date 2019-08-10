@@ -18,16 +18,20 @@
 package org.apache.zookeeper;
 
 import org.apache.yetus.audience.InterfaceAudience;
-import org.apache.zookeeper.proto.WatcherEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.proto.WatcherEvent;
 
 /**
  *  A WatchedEvent represents a change on the ZooKeeper that a Watcher
  *  is able to respond to.  The WatchedEvent includes exactly what happened,
  *  the current state of the ZooKeeper, and the path of the znode that
  *  was involved in the event.
- *  WatchedEvent表示Watcher *能够响应的ZooKeeper上的更改。 WatchedEvent包括发生的事情，ZooKeeper的当前状态，以及参与事件的znode的路径。
+ *
+ *  WatchedEvent表示Watcher 能够响应的ZooKeeper上的更改。 WatchedEvent包括发生的事情，ZooKeeper的当前状态，以及参与事件的znode的路径。
+ *
+ *  WatchedEvent，表示对ZooKeeper上发生变化后的反馈，包含了KeeperState和EventType。
+ *
  */
 @InterfaceAudience.Public
 public class WatchedEvent {
@@ -77,7 +81,7 @@ public class WatchedEvent {
 
     /**
      *  Convert WatchedEvent to type that can be sent over network
-     *  将WatchedEvent转换为可以通过网络发送的类型
+     *  将WatchedEvent转换为可以通过网络发送的类型，序列化然后通过RPC框架发送出去
      */
     public WatcherEvent getWrapper() {
         // WatcherEvent实现了Record接口，可以理解为WatchedEvent用于网络传输的封装类

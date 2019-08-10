@@ -33,6 +33,7 @@ import org.apache.zookeeper.client.HostProvider;
 import org.junit.Assert;
 import org.junit.Test;
 
+// 客户端重新连接测试
 public class ClientReconnectTest extends ZKTestCase {
     private SocketChannel sc;
     private CountDownLatch countDownLatch = new CountDownLatch(3);

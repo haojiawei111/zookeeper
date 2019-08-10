@@ -156,7 +156,7 @@ public class NIOServerCnxn extends ServerCnxn {
         requestInterestOpsUpdate();
     }
 
-    /** Read the request payload (everything following the length prefix) */
+    /** Read the request payload (everything following the length prefix) 读取请求有效负载（长度前缀后面的所有内容）*/
     private void readPayload() throws IOException, InterruptedException, ClientCnxnLimitException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
@@ -309,6 +309,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     /**
      * Handles read/write IO on connection.
+     * 处理连接的读/写IO。
      */
     void doIO(SelectionKey k) throws InterruptedException {
         try {
@@ -327,9 +328,10 @@ public class NIOServerCnxn extends ServerCnxn {
                             + Long.toHexString(sessionId)
                             + ", likely client has closed socket");
                 }
+                // return limit - position;返回limit和position之间相对位置差
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
-                    if (incomingBuffer == lenBuffer) { // start of next request
+                    if (incomingBuffer == lenBuffer) { // start of next request 开始下一个请求
                         incomingBuffer.flip();
                         isPayload = readLength(k);
                         incomingBuffer.clear();
@@ -337,6 +339,7 @@ public class NIOServerCnxn extends ServerCnxn {
                         // continuation
                         isPayload = true;
                     }
+
                     if (isPayload) { // not the case for 4letterword
                         readPayload();
                     }

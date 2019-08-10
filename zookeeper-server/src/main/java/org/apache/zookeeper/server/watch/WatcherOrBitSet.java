@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.server.util.BitHashSet;
 
+// 两个属性只能用一个
 public class WatcherOrBitSet {
 
     private Set<Watcher> watchers;

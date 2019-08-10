@@ -1298,6 +1298,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             // Always treat packet from the client as a possible
             // local request.
             setLocalSessionFlag(si);
+            // 调用请求处理链处理请求
             submitRequest(si);
             return;
         }

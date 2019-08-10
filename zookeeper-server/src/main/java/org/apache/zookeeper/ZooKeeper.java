@@ -142,6 +142,27 @@ import java.util.Set;
  * close() will never throw an InterruptedException but the exception remains in the
  * signature for backwards compatibility purposes.
 */
+// ZooKeeper的内部类框架图如下图所示
+//           ZKWatchManager
+//           States
+//                                  |-- ExistsWatchRegistration
+//                                  |
+//           WatchRegistration  ------- DataWatchRegistration
+//                                  |
+//                                  |-- ChildWatchRegistration　
+// 　
+//  ZKWatchManager，Zookeeper的Watcher管理者，其源码在之前已经分析过，不再累赘。
+//
+//　WatchRegistration，抽象类，用作watch注册。
+//
+//　ExistsWatchRegistration，存在性watch注册。
+//
+//　DataWatchRegistration，数据watch注册。
+//
+//　ChildWatchRegistration，子节点注册。
+//
+//　States，枚举类型，表示服务器的状态
+
 @SuppressWarnings("try")
 @InterfaceAudience.Public
 public class ZooKeeper implements AutoCloseable {
@@ -264,17 +285,17 @@ public class ZooKeeper implements AutoCloseable {
      * We are implementing this as a nested class of ZooKeeper so that
      * the public methods will not be exposed as part of the ZooKeeper client
      * API.
+     *
+     * KWatchManager，Zookeeper的内部类，继承ClientWatchManager。
+     *
      */
     static class ZKWatchManager implements ClientWatchManager {
-        //针对内容的watch
-        private final Map<String, Set<Watcher>> dataWatches =
-            new HashMap<String, Set<Watcher>>();
-        //针对exist API相关的watch
-        private final Map<String, Set<Watcher>> existWatches =
-            new HashMap<String, Set<Watcher>>();
-        //针对getChildren API相关的watch
-        private final Map<String, Set<Watcher>> childWatches =
-            new HashMap<String, Set<Watcher>>();
+        //针对内容的watch   path -> set<Watcher>
+        private final Map<String, Set<Watcher>> dataWatches = new HashMap<String, Set<Watcher>>();
+        //针对exist API相关的watch   path -> set<Watcher>
+        private final Map<String, Set<Watcher>> existWatches = new HashMap<String, Set<Watcher>>();
+        //针对getChildren API相关的watch   path -> set<Watcher>
+        private final Map<String, Set<Watcher>> childWatches = new HashMap<String, Set<Watcher>>();
         //client传递的,默认的watcher实现
         private boolean disableAutoWatchReset;
 
@@ -350,6 +371,12 @@ public class ZooKeeper implements AutoCloseable {
             return removedWatchers;
         }
 
+        /**
+         * @param path
+         * @param watcherObj
+         * @param pathVsWatchers
+         * @return 判断path对应的watcherObj是否在pathVsWatchers中存在，存在则返回true，否则返回false
+         */
         private boolean contains(String path, Watcher watcherObj,
                 Map<String, Set<Watcher>> pathVsWatchers) {
             boolean watcherExists = true;
@@ -369,8 +396,9 @@ public class ZooKeeper implements AutoCloseable {
         }
 
         /**
-         * Validate the provided znode path contains the given watcher and
-         * watcherType
+         * Validate the provided znode path contains the given watcher and watcherType
+         *
+         * 验证提供的znode路径包含给定的watcher和watcherType
          * 
          * @param path
          *            - client path
@@ -418,7 +446,7 @@ public class ZooKeeper implements AutoCloseable {
                 }
             }
             }
-            // Watcher function doesn't exists for the specified params
+            // Watcher function doesn't exists for the specified params 指定的参数不存在Watcher函数
             if (!containsWatcher) {
                 throw new KeeperException.NoWatcherException(path);
             }
@@ -466,7 +494,7 @@ public class ZooKeeper implements AutoCloseable {
          * @see org.apache.zookeeper.ClientWatchManager#materialize(Event.KeeperState, 
          *                                                        Event.EventType, java.lang.String)
          */
-        // 该方法表示事件发生时，返回需要被通知的Watcher集合，可能为空集合。
+        // 核心方法--该方法表示事件发生时，返回需要被通知的Watcher集合，可能为空集合。
         @Override
         public Set<Watcher> materialize(Watcher.Event.KeeperState state,
                                         Watcher.Event.EventType type,
@@ -564,7 +592,7 @@ public class ZooKeeper implements AutoCloseable {
             this.clientPath = clientPath;
         }
 
-        // 获取路径到Watchers集合的键值对，由子类实现
+        // 获取Path到Watchers集合的键值对，由子类实现
         abstract protected Map<String, Set<Watcher>> getWatches(int rc);
 
         /**
@@ -597,7 +625,7 @@ public class ZooKeeper implements AutoCloseable {
          * watch on the node
          * @return true if the watch should be added, otw false
          */
-        // 判断是否需要添加，判断rc是否为0
+        // 判断是否需要添加，判断rc是否为0,如果是0就可以注册，这是默认的策略，子类有可能会覆盖此方法
         protected boolean shouldAddWatch(int rc) {
             return rc == 0;
         }
@@ -654,9 +682,15 @@ public class ZooKeeper implements AutoCloseable {
     // 表示服务器的状态
     @InterfaceAudience.Public
     public enum States {
-        CONNECTING, ASSOCIATING, CONNECTED, CONNECTEDREADONLY,
-        CLOSED, AUTH_FAILED, NOT_CONNECTED;
-        // 判断服务器是否存活
+        // 代表服务器的状态
+        CONNECTING,
+        ASSOCIATING,
+        CONNECTED,
+        CONNECTEDREADONLY,
+        CLOSED,
+        AUTH_FAILED,
+        NOT_CONNECTED;
+        // 判断服务器是否存活          不为关闭状态并且未认证失败
         public boolean isAlive() {
             return this != CLOSED && this != AUTH_FAILED;
         }
@@ -666,7 +700,7 @@ public class ZooKeeper implements AutoCloseable {
          * could possibly be read-only, if this client is allowed
          * to go to read-only mode)
          * */
-        // 判断客户端是否连接至服务端
+        // 判断客户端是否连接至服务端       已连接或者只读连接
         public boolean isConnected() {
             return this == CONNECTED || this == CONNECTEDREADONLY;
         }
@@ -1250,7 +1284,7 @@ public class ZooKeeper implements AutoCloseable {
      *
      * @since 3.5.5
      */
-    // 此型构造函数和之前构造函数的区别在于本构造函数提供了sessionId和sessionPwd，这表明用户已经之前已经连接过服务端，所以能够获取到sessionId，其流程与之前的构造函数类似，不再累赘。
+
     public ZooKeeper(String connectString, int sessionTimeout, Watcher watcher,
     		long sessionId, byte[] sessionPasswd, boolean canBeReadOnly,
     		HostProvider aHostProvider, ZKClientConfig clientConfig) throws IOException {
@@ -1267,6 +1301,7 @@ public class ZooKeeper implements AutoCloseable {
         this.clientConfig = clientConfig;
         // 初始化默认Watcher
         watchManager = defaultWatchManager();
+        // 这个默认的watcher就是创建客户端的时候传入的
         watchManager.defaultWatcher = watcher;
         // 对传入的connectString进行解析
         // connectString 类似于127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002未指定根空间的字符串
@@ -1279,6 +1314,9 @@ public class ZooKeeper implements AutoCloseable {
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
                 hostProvider, sessionTimeout, this, watchManager,
                 getClientCnxnSocket(), sessionId, sessionPasswd, canBeReadOnly);
+
+        // 此型构造函数和之前构造函数的区别在于本构造函数提供了sessionId和sessionPwd，
+        // 这表明用户已经之前已经连接过服务端，所以能够获取到sessionId，其流程与之前的构造函数类似。
         // 设置客户端的seenRwServerBefore字段为true(因为用户提供了sessionId，表示肯定已经连接过)
         cnxn.seenRwServerBefore = true; // since user has provided sessionId
         // 启动
@@ -1366,6 +1404,7 @@ public class ZooKeeper implements AutoCloseable {
 
     /* Useful for testing watch handling behavior */
     protected ZKWatchManager defaultWatchManager() {
+        // ZKClientConfig.DISABLE_AUTO_WATCH_RESET = "zookeeper.disableAutoWatchReset"  默认是false
         return new ZKWatchManager(getClientConfig().getBoolean(ZKClientConfig.DISABLE_AUTO_WATCH_RESET));
     }
 
@@ -3175,6 +3214,8 @@ public class ZooKeeper implements AutoCloseable {
     /** 
      * Returns the local address to which the socket is bound.
      * THIS METHOD IS EXPECTED TO BE USED FOR TESTING ONLY!!!
+     * 返回套接字绑定的本地地址。
+     * *此方法预计仅用于测试!!!
      *
      * @since 3.3.0
      * 
@@ -3184,6 +3225,7 @@ public class ZooKeeper implements AutoCloseable {
     protected SocketAddress testableLocalSocketAddress() {
         return cnxn.sendThread.getClientCnxnSocket().getLocalSocketAddress();
     }
+
     // 该函数会利用反射创建ClientCnxnSocketNIO实例
     private ClientCnxnSocket getClientCnxnSocket() throws IOException {
         // 查看是否在系统属性中进行了设置   zookeeper.clientCnxnSocket
@@ -3193,7 +3235,7 @@ public class ZooKeeper implements AutoCloseable {
             clientCnxnSocketName = ClientCnxnSocketNIO.class.getName(); // 若未进行设置，取得ClientCnxnSocketNIO的类名
         }
         try {
-            // 反射拿到构造器
+            // 反射拿到构造器，构造器要传入ZKClientConfig对象
             Constructor<?> clientCxnConstructor = Class.forName(clientCnxnSocketName).getDeclaredConstructor(ZKClientConfig.class);
             ClientCnxnSocket clientCxnSocket = (ClientCnxnSocket) clientCxnConstructor.newInstance(getClientConfig());
             return clientCxnSocket;

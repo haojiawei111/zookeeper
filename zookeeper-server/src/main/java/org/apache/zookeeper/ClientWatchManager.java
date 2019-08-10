@@ -22,6 +22,7 @@ import java.util.Set;
 
 /**
  * 客户端侧的Watch管理接口
+ * ClientWatchManager，接口类型，表示客户端的Watcher管理者，其定义了materialized方法，需子类实现。
  */
 public interface ClientWatchManager {
     /**
@@ -39,7 +40,9 @@ public interface ClientWatchManager {
      * @param path event path
      * @return may be empty set but must not be null可能是空集但不能为空
      */
-    //ClientWatchManager负责根据Event得到需要通知的watcher，该manager本身并不进行通知
+    /*
+    ClientWatchManager负责根据Event得到需要通知的watcher，该manager本身并不进行通知
+     */
     public Set<Watcher> materialize(Watcher.Event.KeeperState state,
         Watcher.Event.EventType type, String path);
 }

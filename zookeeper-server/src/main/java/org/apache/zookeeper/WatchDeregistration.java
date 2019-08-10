@@ -26,8 +26,8 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooKeeper.ZKWatchManager;
 
 /**
- * Handles the special case of removing watches which has registered for a
- * client path
+ * Handles the special case of removing watches which has registered for a client path
+ * 处理已删除已注册客户路径的watches的特殊情况
  */
 public class WatchDeregistration {
 
