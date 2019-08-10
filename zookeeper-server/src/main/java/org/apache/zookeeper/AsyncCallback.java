@@ -29,6 +29,8 @@ import org.apache.zookeeper.data.Stat;
  * Asynchronous calls usually improve system efficiency on IO-related APIs.
  * <p/>
  * ZooKeeper provides asynchronous version as equivalent to synchronous APIs.
+ * 异步回调的接口定义。在函数返回后，将延迟异步回调调用。异步调用通常可提高IO相关API的系统效率。
+ * ZooKeeper提供与同步API等效的异步版本。
  */
 @InterfaceAudience.Public
 public interface AsyncCallback {
@@ -226,6 +228,7 @@ public interface AsyncCallback {
 
     /**
      * This callback is used to retrieve the name of the node.
+     * 此回调用于检索节点的名称。
      */
     @InterfaceAudience.Public
     interface StringCallback extends AsyncCallback {

@@ -33,6 +33,8 @@ import java.util.List;
  * Each of these MultiHeaders has a type which indicates
  * the type of the following transaction or a negative number if no more transactions
  * are included.
+ * 对复合事务进行编码。在有线格式中，每个事务由一个MultiHeader组成，后跟相应的请求。
+ * 这些MultiHeader中的每一个都有一种类型，表示*以下交易的类型，如果不包含更多交易*则为负数。
  */
 public class MultiTransactionRecord implements Record, Iterable<Op> {
     private List<Op> ops = new ArrayList<Op>();

@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Responsible for performing local session upgrade. Only request submitted
- * directly to the leader should go through this processor.
+ * Responsible for performing local session upgrade. Only request submitted directly
+ * to the leader should go through this processor.
  */
 public class LeaderRequestProcessor implements RequestProcessor {
     private static final Logger LOG = LoggerFactory

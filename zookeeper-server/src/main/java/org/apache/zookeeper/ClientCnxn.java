@@ -1543,20 +1543,35 @@ public class ClientCnxn {
         return submitRequest(h, request, response, watchRegistration, null);
     }
 
+    /**
+     * submitRequest会将请求封装成Packet包，然后等待packet包响应结束，然后返回；
+     * 若没结束，则等待；可以设置超时时间。可以看到其是一个同步方法。
+     * @param h
+     * @param request
+     * @param response
+     * @param watchRegistration
+     * @param watchDeregistration
+     * @return
+     * @throws InterruptedException
+     */
     public ReplyHeader submitRequest(RequestHeader h, Record request,
             Record response, WatchRegistration watchRegistration,
             WatchDeregistration watchDeregistration)
             throws InterruptedException {
+        // 创建新响应头
         ReplyHeader r = new ReplyHeader();
+        // 生成Packet包
         Packet packet = queuePacket(h, r, request, response, null, null, null,
                 null, watchRegistration, watchDeregistration);
-        synchronized (packet) {
+        synchronized (packet) {// 同步
             if (requestTimeout > 0) {
                 // Wait for request completion with timeout
+                // 等待超时请求完成
                 waitForPacketFinish(r, packet);
             } else {
                 // Wait for request completion infinitely
-                while (!packet.finished) {
+                // 等待请求无限完成
+                while (!packet.finished) { // 如果没有结束
                     packet.wait();
                 }
             }
@@ -1569,6 +1584,7 @@ public class ClientCnxn {
 
     /**
      * Wait for request completion with timeout.
+     * 等待超时请求完成。
      */
     private void waitForPacketFinish(ReplyHeader r, Packet packet)
             throws InterruptedException {

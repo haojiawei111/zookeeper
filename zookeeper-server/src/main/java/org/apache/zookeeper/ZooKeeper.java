@@ -1594,37 +1594,45 @@ public class ZooKeeper implements AutoCloseable {
      *                and/or sequential
      * @return the actual path of the created node
      * @throws KeeperException if the server returns a non-zero error code
-     * @throws KeeperException.InvalidACLException if the ACL is invalid, null, or empty
+     * @throws KeeperException.InvalidACLException if the ACL is invalid, null, or empty/+*
      * @throws InterruptedException if the transaction is interrupted
      * @throws IllegalArgumentException if an invalid path is specified
      */
-    public String create(final String path, byte data[], List<ACL> acl,
-            CreateMode createMode)
+    public String create(final String path, byte data[], List<ACL> acl, CreateMode createMode)
         throws KeeperException, InterruptedException
     {
         final String clientPath = path;
+        // 验证路径是否合法
         PathUtils.validatePath(clientPath, createMode.isSequential());
         EphemeralType.validateTTL(createMode, -1);
         validateACL(acl);
-
+        // 添加根空间
         final String serverPath = prependChroot(clientPath);
 
+        // 生成新请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(createMode.isContainer() ? ZooDefs.OpCode.createContainer : ZooDefs.OpCode.create);
+        // 生成创建节点请求
         CreateRequest request = new CreateRequest();
+        // 生成创建节点响应
         CreateResponse response = new CreateResponse();
         request.setData(data);
         request.setFlags(createMode.toFlag());
         request.setPath(serverPath);
         request.setAcl(acl);
+        // 提交请求
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
         if (r.getErr() != 0) {
+            // 请求的响应的错误码不为0，则抛出异常
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
-        if (cnxn.chrootPath == null) {
+        if (cnxn.chrootPath == null) { // 根空间为空
+            // 则返回响应中的路径
             return response.getPath();
         } else {
+            // 除去根空间后返回
             return response.getPath().substring(cnxn.chrootPath.length());
         }
     }
@@ -1761,10 +1769,10 @@ public class ZooKeeper implements AutoCloseable {
 
     /**
      * The asynchronous version of create.
+     * 该create函数是异步的，其大致步骤与同步版的create函数相同，只是最后其会将请求打包成packet，然后放入队列等待提交。
      *
      * @see #create(String, byte[], List, CreateMode)
      */
-    // 该create函数是同步的，主要用作创建节点
     public void create(final String path, byte data[], List<ACL> acl,
             CreateMode createMode, StringCallback cb, Object ctx)
     {
@@ -1790,6 +1798,7 @@ public class ZooKeeper implements AutoCloseable {
         request.setPath(serverPath);
         // 设置请求的ACL列表
         request.setAcl(acl);
+        // 封装成packet放入队列，等待提交
         cnxn.queuePacket(h, r, request, response, cb, clientPath,
                 serverPath, ctx, null);
     }
@@ -1829,6 +1838,8 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 该函数是同步的
+     *
      * Delete the node with the given path. The call will succeed if such a node
      * exists, and the given version matches the node's version (if the given
      * version is -1, it matches any node's versions).
@@ -1859,6 +1870,7 @@ public class ZooKeeper implements AutoCloseable {
         throws InterruptedException, KeeperException
     {
         final String clientPath = path;
+        // 验证路径的合法性
         PathUtils.validatePath(clientPath);
 
         final String serverPath;
@@ -1866,27 +1878,35 @@ public class ZooKeeper implements AutoCloseable {
         // maintain semantics even in chroot case
         // specifically - root cannot be deleted
         // I think this makes sense even in chroot case.
-        if (clientPath.equals("/")) {
+        if (clientPath.equals("/")) {// 判断是否是"/"，即zookeeper的根目录，根目录无法删除
             // a bit of a hack, but delete(/) will never succeed and ensures
             // that the same semantics are maintained
             serverPath = clientPath;
-        } else {
+        } else { // 添加根空间
             serverPath = prependChroot(clientPath);
         }
 
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.delete);
+        // 新生删除请求
         DeleteRequest request = new DeleteRequest();
+        // 设置路径
         request.setPath(serverPath);
+        // 设置版本号
         request.setVersion(version);
+        // 创建响应头
         ReplyHeader r = cnxn.submitRequest(h, request, null, null);
-        if (r.getErr() != 0) {
+        if (r.getErr() != 0) { // 判断返回码
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
     }
 
     /**
+     * 该函数用于执行多个操作或者不执行，其首先会验证每个操作的合法性，
+     * 然后将每个操作添加根空间后加入到事务列表中，之后会调用multiInternal函数
      * Executes multiple ZooKeeper operations or none of them.
      * <p>
      * On success, a list of results is returned.
@@ -1915,9 +1935,11 @@ public class ZooKeeper implements AutoCloseable {
      * @since 3.4.0
      */
     public List<OpResult> multi(Iterable<Op> ops) throws InterruptedException, KeeperException {
+        // 验证每个操作是否合法
         for (Op op : ops) {
             op.validate();
         }
+        // 调用multiInternal后返回
         return multiInternal(generateMultiTransaction(ops));
     }
 
@@ -1968,10 +1990,12 @@ public class ZooKeeper implements AutoCloseable {
 
     private MultiTransactionRecord generateMultiTransaction(Iterable<Op> ops) {
         // reconstructing transaction with the chroot prefix
+        // 新生事务列表
         List<Op> transaction = new ArrayList<Op>();
         for (Op op : ops) {
             transaction.add(withRootPrefix(op));
         }
+        // 调用MultiTransactionRecord后返回
         return new MultiTransactionRecord(transaction);
     }
 
@@ -1992,27 +2016,40 @@ public class ZooKeeper implements AutoCloseable {
         cnxn.queuePacket(h, new ReplyHeader(), request, response, cb, null, null, ctx, null);
     }
 
+    /**
+     * multiInternal函数会提交多个操作并且等待响应结果集，然后判断结果集中是否有异常，
+     * 若有异常则抛出异常，否则返回响应结果集。
+     * @param request
+     * @return
+     * @throws InterruptedException
+     * @throws KeeperException
+     */
     protected List<OpResult> multiInternal(MultiTransactionRecord request)
         throws InterruptedException, KeeperException {
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.multi);
+        // 新生多重响应
         MultiResponse response = new MultiResponse();
+        // 创建响应头
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
-        if (r.getErr() != 0) {
+        if (r.getErr() != 0) { // 判断返回码是否为0
             throw KeeperException.create(KeeperException.Code.get(r.getErr()));
         }
-
+        // 获取响应的结果集
         List<OpResult> results = response.getResultList();
         
         ErrorResult fatalError = null;
-        for (OpResult result : results) {
+        for (OpResult result : results) { // 遍历结果集
             if (result instanceof ErrorResult && ((ErrorResult)result).getErr() != KeeperException.Code.OK.intValue()) {
+                //判断结果集中是否出现了异常
                 fatalError = (ErrorResult) result;
                 break;
             }
         }
 
-        if (fatalError != null) {
+        if (fatalError != null) { // 出现了异常
             KeeperException ex = KeeperException.create(KeeperException.Code.get(fatalError.getErr()));
             ex.setMultiResults(results);
             throw ex;
@@ -2043,6 +2080,7 @@ public class ZooKeeper implements AutoCloseable {
             Object ctx)
     {
         final String clientPath = path;
+        // 验证路径是否合法
         PathUtils.validatePath(clientPath);
 
         final String serverPath;
@@ -2050,7 +2088,7 @@ public class ZooKeeper implements AutoCloseable {
         // maintain semantics even in chroot case
         // specifically - root cannot be deleted
         // I think this makes sense even in chroot case.
-        if (clientPath.equals("/")) {
+        if (clientPath.equals("/")) {// 判断是否是"/"，即zookeeper的根目录，根目录无法删除
             // a bit of a hack, but delete(/) will never succeed and ensures
             // that the same semantics are maintained
             serverPath = clientPath;
@@ -2058,16 +2096,24 @@ public class ZooKeeper implements AutoCloseable {
             serverPath = prependChroot(clientPath);
         }
 
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.delete);
+        // 新生删除请求
         DeleteRequest request = new DeleteRequest();
+        // 设置路径
         request.setPath(serverPath);
+        // 设置版本号
         request.setVersion(version);
+        // 封装成packet放入队列，等待提交
         cnxn.queuePacket(h, new ReplyHeader(), request, null, cb, clientPath,
                 serverPath, ctx, null);
     }
 
     /**
+     * 该函数是同步的，用于判断指定路径的节点是否存在，值得注意的是，其会对指定路径的结点进行注册监听。
+     *
      * Return the stat of the node of the given path. Return null if no such a
      * node exists.
      * <p>
@@ -2088,31 +2134,39 @@ public class ZooKeeper implements AutoCloseable {
         throws KeeperException, InterruptedException
     {
         final String clientPath = path;
+        // 验证路径是否合法
         PathUtils.validatePath(clientPath);
 
         // the watch contains the un-chroot path
         WatchRegistration wcb = null;
-        if (watcher != null) {
+        if (watcher != null) {// 创建存在性观察者注册
             wcb = new ExistsWatchRegistration(watcher, clientPath);
         }
-
+        // 添加根空间
         final String serverPath = prependChroot(clientPath);
 
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.exists);
+        // 新生节点存在请求
         ExistsRequest request = new ExistsRequest();
+        // 设置路径
         request.setPath(serverPath);
+        // 设置Watcher
         request.setWatch(watcher != null);
+        // 创建设置数据响应
         SetDataResponse response = new SetDataResponse();
+        // 提交请求
         ReplyHeader r = cnxn.submitRequest(h, request, response, wcb);
-        if (r.getErr() != 0) {
+        if (r.getErr() != 0) { // 判断返回码
             if (r.getErr() == KeeperException.Code.NONODE.intValue()) {
                 return null;
             }
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
-
+        // 返回结果的状态
         return response.getStat().getCzxid() == -1 ? null : response.getStat();
     }
 
@@ -2141,6 +2195,7 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 该函数是异步的，与同步的流程相似
      * The asynchronous version of exists.
      *
      * @see #exists(String, Watcher)
@@ -2149,22 +2204,30 @@ public class ZooKeeper implements AutoCloseable {
             StatCallback cb, Object ctx)
     {
         final String clientPath = path;
+        // 验证路径是否合法
         PathUtils.validatePath(clientPath);
 
         // the watch contains the un-chroot path
         WatchRegistration wcb = null;
-        if (watcher != null) {
+        if (watcher != null) {// 生成存在性注册
             wcb = new ExistsWatchRegistration(watcher, clientPath);
         }
-
+        // 添加根空间
         final String serverPath = prependChroot(clientPath);
 
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.exists);
+        // 新生节点存在请求
         ExistsRequest request = new ExistsRequest();
+        // 设置路径
         request.setPath(serverPath);
+        // 设置Watcher
         request.setWatch(watcher != null);
+        // 创建设置数据响应
         SetDataResponse response = new SetDataResponse();
+        // 将请求封装成packet，放入队列，等待执行
         cnxn.queuePacket(h, new ReplyHeader(), request, response, cb,
                 clientPath, serverPath, ctx, wcb);
     }

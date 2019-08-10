@@ -42,6 +42,7 @@ public class DelayRequestProcessor implements RequestProcessor {
         this.next = next;
     }
 
+    // 默认往延迟队列中加请求
     @Override
     public void processRequest(Request request) throws RequestProcessorException {
         if (blocking) {
@@ -58,7 +59,7 @@ public class DelayRequestProcessor implements RequestProcessor {
     @Override
     public void shutdown() {
     }
-
+    // 取消往延迟队列中发送请求；并全部消费完延迟队列中的请求
     public void unblockQueue() throws RequestProcessorException {
         if (blocking) {
             for (Request request : incomingRequests) {
@@ -68,6 +69,12 @@ public class DelayRequestProcessor implements RequestProcessor {
         }
     }
 
+    /**
+     *  注入延迟请求处理器
+     *  在commitProcessor后面注入DelayRequestProcessor
+     * @param zooKeeperServer
+     * @return
+     */
     public static DelayRequestProcessor injectDelayRequestProcessor(FollowerZooKeeperServer zooKeeperServer) {
         RequestProcessor finalRequestProcessor = zooKeeperServer.commitProcessor.nextProcessor;
         DelayRequestProcessor delayRequestProcessor = new DelayRequestProcessor(finalRequestProcessor);
