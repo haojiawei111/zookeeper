@@ -44,6 +44,9 @@ import org.apache.zookeeper.server.ZooKeeperServerListener;
  * change the state of the system will come back as incoming committed requests,
  * so we need to match them up. Instead of just waiting for the committed requests,
  * we process the uncommitted requests that belong to other sessions.
+ * 此RequestProcessor将传入的已提交请求与本地提交的请求进行匹配。
+ * 诀窍是，本地提交的更改系统状态的请求将作为传入的已提交请求返回，因此我们需要将它们匹配。
+ * 我们不是仅仅等待已提交的请求，而是处理属于其他会话的未提交请求。
  *
  * The CommitProcessor is multi-threaded. Communication between threads is
  * handled via queues, atomics, and wait/notifyAll synchronized on the
@@ -51,29 +54,38 @@ import org.apache.zookeeper.server.ZooKeeperServerListener;
  * continue with the remainder of the processing pipeline. It will allow many
  * read requests but only a single write request to be in flight simultaneously,
  * thus ensuring that write requests are processed in transaction id order.
+ * CommitProcessor是多线程的。线程之间的通信通过队列，原子和处理器上同步的wait / notifyAll来处理。
+ * CommitProcessor充当网关，允许请求继续处理管道的其余部分。
+ * 它将允许许多读取请求，但只有一个写入请求同时处于飞行状态，从而确保以事务ID顺序处理写入请求。
  *
  *   - 1   commit processor main thread, which watches the request queues and
  *         assigns requests to worker threads based on their sessionId so that
  *         read and write requests for a particular session are always assigned
  *         to the same thread (and hence are guaranteed to run in order).
+ *   -  1个提交处理器主线程，它监视请求队列并根据其sessionId将请求分配给工作线程，以便特定会话的读写请求始终分配给同一个线程（因此保证按顺序运行）。
  *   - 0-N worker threads, which run the rest of the request processor pipeline
  *         on the requests. If configured with 0 worker threads, the primary
  *         commit processor thread runs the pipeline directly.
+ *   -  0-N工作线程，它在请求上运行请求处理器管道的其余部分。如果配置了0个工作线程，则主提交处理器线程直接运行管道。
  *
  * Typical (default) thread counts are: on a 32 core machine, 1 commit
  * processor thread and 32 worker threads.
- *
+ * 典型（默认）线程计数是：在32核机器上，1个提交处理器线程和32个工作线程。
  * Multi-threading constraints:
  *   - Each session's requests must be processed in order.
  *   - Write requests must be processed in zxid order
  *   - Must ensure no race condition between writes in one session that would
  *     trigger a watch being set by a read request in another session
+ *  多线程约束：
+ *    - 必须按顺序处理每个会话的请求。
+ *    - 必须以zxid顺序处理写请求
+ *    - 必须确保在一个会话中写入之间没有竞争条件，这将触发由另一个会话中的读取请求设置的监视
  *
  * The current implementation solves the third constraint by simply allowing no
  * read requests to be processed in parallel with write requests.
+ * 当前实现通过简单地允许不与写请求并行处理读取请求来解决第三约束。
  */
-public class CommitProcessor extends ZooKeeperCriticalThread implements
-        RequestProcessor {
+public class CommitProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(CommitProcessor.class);
 
     /** Default: numCores */
@@ -84,41 +96,42 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
         "zookeeper.commitProcessor.shutdownTimeout";
 
     /**
-     * Incoming requests.
+     * Incoming requests.传入请求的队列
      */
-    protected LinkedBlockingQueue<Request> queuedRequests =
-        new LinkedBlockingQueue<Request>();
+    protected LinkedBlockingQueue<Request> queuedRequests = new LinkedBlockingQueue<Request>();
 
     /**
      * The number of read requests currently held in all session queues
+     * 当前在所有会话队列中保留的读取请求数
      */
     private AtomicInteger numReadQueuedRequests = new AtomicInteger(0);
 
     /**
      * The number of quorum requests currently held in all session queued
+     * 所有会话中当前保留的仲裁请求数排队
      */
     private AtomicInteger numWriteQueuedRequests = new AtomicInteger(0);
 
     /**
      * Requests that have been committed.
+     * 已提交的请求。
      */
-    protected final LinkedBlockingQueue<Request> committedRequests =
-        new LinkedBlockingQueue<Request>();
+    protected final LinkedBlockingQueue<Request> committedRequests = new LinkedBlockingQueue<Request>();
 
     /**
      * Requests that we are holding until commit comes in. Keys represent
      * session ids, each value is a linked list of the session's requests.
+     * 在提交之前我们持有的请求。Keys表示会话ID，每个value是会话请求的列表。
      */
-    protected final Map<Long, Deque<Request>> pendingRequests =
-            new HashMap<>(10000);
+    protected final Map<Long, Deque<Request>> pendingRequests = new HashMap<>(10000);
 
-    /** The number of requests currently being processed */
+    /** The number of requests currently being processed 当前正在处理的请求数*/
     protected final AtomicInteger numRequestsProcessing = new AtomicInteger(0);
 
     RequestProcessor nextProcessor;
 
-    /** For testing purposes, we use a separated stopping condition for the
-     * outer loop.*/
+    /** For testing purposes, we use a separated stopping condition for the outer loop.
+     * 出于测试目的，我们对外环使用单独的停止条件。*/
     protected volatile boolean stoppedMainLoop = true;
     protected volatile boolean stopped = true;
     private long workerShutdownTimeoutMS;
@@ -129,6 +142,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
      * This flag indicates whether we need to wait for a response to come back from the
      * leader or we just let the sync operation flow through like a read. The flag will
      * be false if the CommitProcessor is in a Leader pipeline.
+     * 此标志指示我们是否需要等待响应从领导者返回，或者我们只是让同步操作像读取一样流过。
+     * 如果CommitProcessor位于Leader管道中，则该标志将为false。
      */
     boolean matchSyncs;
 
@@ -139,6 +154,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
         this.matchSyncs = matchSyncs;
     }
 
+    // 是否有正在处理的请求
     private boolean isProcessingRequest() {
         return numRequestsProcessing.get() != 0;
     }
@@ -175,6 +191,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
              * the number of request we poll from queuedRequests, since it is
              * possible to endlessly poll read requests from queuedRequests, and
              * that will lead to a starvation of non-local committed requests.
+             * 在以下循环的每次迭代中，我们最多处理queuedRequests的 requestsToProcess请求。
+             * 我们必须限制从queuedRequests轮询的请求数，因为它可以无休止地轮询来自queuedRequests的读取请求，这将导致非本地提交请求的饥饿。
              */
             int requestsToProcess = 0;
             boolean commitIsWaiting = false;
@@ -192,8 +210,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
                 if (requestsToProcess == 0 && !commitIsWaiting){
                     // Waiting for requests to process
                     synchronized (this) {
-                        while (!stopped && requestsToProcess == 0
-                                && !commitIsWaiting) {
+                        while (!stopped && requestsToProcess == 0 && !commitIsWaiting) { //在这里等待commitRequest
                             wait();
                             commitIsWaiting = !committedRequests.isEmpty();
                             requestsToProcess = queuedRequests.size();
@@ -382,6 +399,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
 
     @Override
     public void start() {
+        // 拿到系统cpu核心数
         int numCores = Runtime.getRuntime().availableProcessors();
         int numWorkerThreads = Integer.getInteger(
             ZOOKEEPER_COMMIT_PROC_NUM_WORKER_THREADS, numCores);
@@ -412,6 +430,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     /**
      * CommitWorkRequest is a small wrapper class to allow
      * downstream processing to be run using the WorkerService
+     * CommitWorkRequest是一个小包装类，允许使用WorkerService运行下游处理
      */
     private class CommitWorkRequest extends WorkerService.WorkRequest {
         private final Request request;
@@ -423,17 +442,16 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
         @Override
         public void cleanup() {
             if (!stopped) {
-                LOG.error("Exception thrown by downstream processor,"
-                          + " unable to continue.");
+                LOG.error("Exception thrown by downstream processor, unable to continue." +
+                        "下游处理器抛出异常，无法继续。");
                 CommitProcessor.this.halt();
             }
         }
 
         public void doWork() throws RequestProcessorException {
             try {
-                if (needCommit(request)) {
-                    if (request.commitProcQueueStartTime != -1 &&
-                            request.commitRecvTime != -1) {
+                if (needCommit(request)) {// 如果需要commit
+                    if (request.commitProcQueueStartTime != -1 && request.commitRecvTime != -1) {
                         // Locally issued writes.
                         long currentTime = Time.currentElapsedTime();
                         ServerMetrics.getMetrics().WRITE_COMMITPROC_TIME.add(currentTime -
@@ -446,6 +464,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
                                 Time.currentElapsedTime() - request.commitRecvTime);
                     }
                 } else {
+                    // 不需要commit的请求
                     if (request.commitProcQueueStartTime != -1) {
                         ServerMetrics.getMetrics().READ_COMMITPROC_TIME.add(
                                 Time.currentElapsedTime() -
@@ -507,6 +526,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
         request.commitProcQueueStartTime = Time.currentElapsedTime();
         queuedRequests.add(request);
         // If the request will block, add it to the queue of blocking requests
+        // 如果请求将阻止，请将其添加到阻止请求队列中
         if (needCommit(request)) {
             numWriteQueuedRequests.incrementAndGet();
         } else {

@@ -50,6 +50,8 @@ public class ReadOnlyZooKeeperServer extends ZooKeeperServer {
         this.self = self;
     }
 
+    // 请求处理链
+    // ReadOnlyRequestProcessor -> PrepRequestProcessor -> FinalRequestProcessor
     @Override
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);

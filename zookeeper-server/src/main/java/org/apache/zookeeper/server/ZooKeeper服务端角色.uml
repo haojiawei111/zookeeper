@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.zookeeper.server.ZooKeeperServer</OriginalElement>
+  <nodes>
+    <node x="567.75" y="79.0">org.apache.zookeeper.server.ZooKeeperServer</node>
+    <node x="599.75" y="158.0">org.apache.zookeeper.server.ZooKeeperServer.State</node>
+    <node x="304.5" y="237.0">org.apache.zookeeper.server.quorum.LeaderZooKeeperServer</node>
+    <node x="202.75" y="158.0">org.apache.zookeeper.server.quorum.QuorumZooKeeperServer</node>
+    <node x="901.75" y="158.0">org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord</node>
+    <node x="638.75" y="0.0">org.apache.zookeeper.server.SessionTracker.SessionExpirer</node>
+    <node x="403.75" y="158.0">org.apache.zookeeper.server.ZooKeeperServer.MissingSessionException</node>
+    <node x="105.5" y="237.0">org.apache.zookeeper.server.quorum.LearnerZooKeeperServer</node>
+    <node x="206.0" y="316.0">org.apache.zookeeper.server.quorum.FollowerZooKeeperServer</node>
+    <node x="525.75" y="0.0">org.apache.zookeeper.server.ServerStats.Provider</node>
+    <node x="693.75" y="158.0">org.apache.zookeeper.server.quorum.ReadOnlyZooKeeperServer</node>
+    <node x="0.0" y="316.0">org.apache.zookeeper.server.quorum.ObserverZooKeeperServer</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.zookeeper.server.quorum.FollowerZooKeeperServer" target="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="297.0" y="291.0" />
+      <point x="239.75" y="291.0" />
+      <point x="44.75" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="963.25" y="128.0" />
+      <point x="691.95" y="128.0" />
+      <point x="55.200000000000045" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServer.State" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServer" target="org.apache.zookeeper.server.SessionTracker.SessionExpirer">
+      <point x="34.5" y="-14.5" />
+      <point x="671.25" y="54.0" />
+      <point x="701.25" y="54.0" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LeaderZooKeeperServer" target="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="391.5" y="212.0" />
+      <point x="338.5" y="212.0" />
+      <point x="45.25" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServer.MissingSessionException" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="491.75" y="138.0" />
+      <point x="609.15" y="138.0" />
+      <point x="-27.600000000000023" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer" target="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="195.0" y="212.0" />
+      <point x="248.0" y="212.0" />
+      <point x="-45.25" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServer" target="org.apache.zookeeper.server.ServerStats.Provider">
+      <point x="-34.5" y="-14.5" />
+      <point x="602.25" y="54.0" />
+      <point x="572.25" y="54.0" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ObserverZooKeeperServer" target="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="93.0" y="291.0" />
+      <point x="150.25" y="291.0" />
+      <point x="-44.75" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ReadOnlyZooKeeperServer" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="787.75" y="138.0" />
+      <point x="664.35" y="138.0" />
+      <point x="27.600000000000023" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-14.5" />
+      <point x="293.25" y="128.0" />
+      <point x="581.55" y="128.0" />
+      <point x="-55.200000000000045" y="14.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="514.0" y="172.5" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

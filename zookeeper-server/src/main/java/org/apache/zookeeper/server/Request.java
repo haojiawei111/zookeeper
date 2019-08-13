@@ -35,6 +35,18 @@ import org.apache.zookeeper.txn.TxnHeader;
  * onto the request as it is processed.
  * 这是表示通过 RequestProcessors链移动的请求的结构。在处理请求时，会在请求中添加各种信息。
  */
+// sessionId 	会话ID
+// cxid	客户端事务ID
+// type	操作类型, 如OpCode.setData
+// request	请求Record对象，如SetDataRequest
+// cnxn	Server和Client端的连接对象
+// hdr	请求事务头TxnHeader
+// txn	请求事务体Record，如OpCode.setData请求，则是SetDataTxn类型对象
+// zxid	ZooKeeper事务ID
+// authInfo	认证信息
+// createTime	创建时间
+// owner	所有者
+// e	处理过程中的异常
 public class Request {
     public final static Request requestOfDeath = new Request(null, 0, 0, 0, null, null);
 

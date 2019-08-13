@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.server.Request;
 
+// 学习者同步请求
 public class LearnerSyncRequest extends Request {
 	LearnerHandler fh;
 	public LearnerSyncRequest(LearnerHandler fh, long sessionId, int xid, int type,

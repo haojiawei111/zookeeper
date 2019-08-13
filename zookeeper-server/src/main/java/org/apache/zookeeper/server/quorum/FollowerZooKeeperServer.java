@@ -70,6 +70,14 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         return self.follower;
     }
 
+    // 请求处理链 这里两条处理链
+    // FollowerRequestProcessor -> CommitProcessor -> FinalRequestProcessor
+    // SyncRequestProcessor -> SendAckRequestProcessor
+
+    // 从FollowerRequestProcessor处理器开始,该处理器接收并处理客户端请求. FollowerRequestProcessor 处理器之后转发请求给CommitRequestProcessor,同时也会转发写请求到群首服务器. CommitRequestProcessor 会直接转发读请求到FinalRequestProcessor 处理器, 而且对于写请求, CommitRequestProcessor在转发给 FinalRequestProcessor处理器之前会等待提交事务.
+    //
+    //当群首接收到一个新的写请求操作时,直接地或通过其他追随者服务器生成一个提议(proposal),之后转发到追随者服务器. 当收到一个提议,追随者会发送这个提议道SyncRequestProcessor 处理器,SendRequestProcessor会向群首发送确认消息. 当群首收到足够确认消息来提交这个提议时,群首就会发送提交事务消息给追随者(同时也会发哦少年宫INFORM消息给观察者服务器). 当接收到提交事务消息时,追随者就通过CommitRequestProcessor 处理器进行处理.
+
     @Override
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
@@ -78,6 +86,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         commitProcessor.start();
         firstProcessor = new FollowerRequestProcessor(this, commitProcessor);
         ((FollowerRequestProcessor) firstProcessor).start();
+
         syncProcessor = new SyncRequestProcessor(this,
                 new SendAckRequestProcessor((Learner)getFollower()));
         syncProcessor.start();

@@ -63,16 +63,31 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
         return self.leader;
     }
 
+    // Leader请求处理链
+    //                                                        |-> SyncRequestProcessor -> AckRequestProcessor
+    //                                                        |
+    // LeaderRequestProcessor -> prepRequestProcessor -> proposalProcessor -> commitProcessor -> Leader.ToBeAppliedRequestProcessor -> FinalRequestProcessor
+
+    // PrepRequestProcessor接口客户端的请求并执行这个请求,处理结果则是生成一个事务. 事务是执行一个操作的结果, 该操作会反映到ZooKeeper的数据树上.
+    // 事务信息将会以头部记录和事务记录的方式添加到Request对象中. 同时还要注意,只有改变ZooKeeper状态的操作才会产生事务,对于读操作并不会产生任何事务.
+    // 因此,对于读请求的Request对象中,事务成员属性的引用值为null.
+    //
+    // 而之后的处理器则为ProposalRequestProcessor.该处理器会准备一个提议,并将该提议发送给跟随者. ProposalRequestProcessor将会把所有请求都转发给CommitRequestProcessor,而且对于写操作请求,还会将请求转发给SyncRequestProcessor处理器.
+    //
+    //SyncRequestProcessor 处理器所执行的操作与独立服务器一样,即持久化操作. 执行完之后会触发AckRequestProcessor处理器,它是一个简单请求处理器,它仅仅生成确认消息并返回给自己. 此处便是上文中提到的,在仲裁模式下,群首需要收到每个服务器的确认消息,也包括自己,而AckRequestProcessor 处理器就负责这个;
+    //
+    //CommitRequestProcessor 会将收到足够多的确认消息的提议进行提交. 实际上,确认消息是由Leader类处理的(Leader.processAck()方法),这个方法会将提交的请求加入到CommitRequestProcessor类中的一个队列中.这个队列会由请求处理器线程进行处理.
+    //
+    //FinalRequestProcessor处理器,作用与独立服务器一样,不过在它之前还有一个简单的请求处理器,这个处理器会从提议列表中删除那些待接受的提议,这个处理器的名字叫ToBeAppliedRequestProcessor,待接受请求列表包括那些已经被仲裁法定人数所确认的请求,并等待执行. 群首使用这个列表与追随者之间进行同步,并将收到确认消息的请求加入到这个列表中. 之后 ToBeAppliedRequestProcessor 处理器就会在 FinalRequestProcessor处理器执行后删除这个列表中的元素;
+
     @Override
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         RequestProcessor toBeAppliedProcessor = new Leader.ToBeAppliedRequestProcessor(finalProcessor, getLeader());
-        commitProcessor = new CommitProcessor(toBeAppliedProcessor,
-                Long.toString(getServerId()), false,
+        commitProcessor = new CommitProcessor(toBeAppliedProcessor, Long.toString(getServerId()), false,
                 getZooKeeperServerListener());
         commitProcessor.start();
-        ProposalRequestProcessor proposalProcessor = new ProposalRequestProcessor(this,
-                commitProcessor);
+        ProposalRequestProcessor proposalProcessor = new ProposalRequestProcessor(this, commitProcessor);
         proposalProcessor.initialize();
         prepRequestProcessor = new PrepRequestProcessor(this, proposalProcessor);
         prepRequestProcessor.start();

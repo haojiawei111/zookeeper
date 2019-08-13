@@ -577,6 +577,15 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
     }
     //  zookeeperServer的请求处理链 PrepRequestProcessor -> syncProcessor -> RequestProcessor
+
+    // PrepRequestProcessor接口客户端的请求并执行这个请求,处理结果则是生成一个事务. 事务是执行一个操作的结果, 该操作会反映到ZooKeeper的数据树上.
+    // 事务信息将会以头部记录和事务记录的方式添加到Request对象中. 同时还要注意,只有改变ZooKeeper状态的操作才会产生事务,对于读操作并不会产生任何事务.
+    // 因此,对于读请求的Request对象中,事务成员属性的引用值为null.
+    //
+    //下一个请求处理器为SynRequestProcessor. 它负责将事务持久化到磁盘上. 实际上就是将事务数据按照顺序追加到事务日志中, 并生成快照数据.
+    //
+    //在下一个处理器也是最后一个为FinalRequestProcessor.如果Request对象包含事务数据,该处理器将会接受对ZooKeeper数据树的修改,否则该处理器会从数据树中读取数据并返回给客户端.
+
     protected void setupRequestProcessors() {
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         RequestProcessor syncProcessor = new SyncRequestProcessor(this, finalProcessor);

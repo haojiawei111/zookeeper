@@ -32,6 +32,7 @@ import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 
 /**
  * Parent class for all ZooKeeperServers for Learners
+ * 适用于学习者的所有ZooKeeperServers的父类
  */
 public abstract class LearnerZooKeeperServer extends QuorumZooKeeperServer {
 

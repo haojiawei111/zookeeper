@@ -56,14 +56,15 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
         upgradeableSessionTracker.start();
     }
 
-    public Request checkUpgradeSession(Request request)
-            throws IOException, KeeperException {
+    public Request checkUpgradeSession(Request request) throws IOException, KeeperException {
         // If this is a request for a local session and it is to
         // create an ephemeral node, then upgrade the session and return
         // a new session request for the leader.
         // This is called by the request processor thread (either follower
         // or observer request processor), which is unique to a learner.
         // So will not be called concurrently by two threads.
+        // 如果这是对本地会话的请求，并且它是创建临时节点，则升级会话并为该领导者返回新的会话请求。
+        // 这由请求处理器线程（跟随者或观察者请求处理器）调用，这对于学习者来说是唯一的。因此不会被两个线程同时调用。
         if ((request.type != OpCode.create && request.type != OpCode.create2 && request.type != OpCode.multi) ||
             !upgradeableSessionTracker.isLocalSession(request.sessionId)) {
             return null;
