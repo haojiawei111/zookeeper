@@ -895,8 +895,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         adminServer = AdminServerFactory.createAdminServer();
     }
 
+    /**
+     * 主要初始化authServer和authLearner对象
+     * @throws SaslException
+     */
     public void initialize() throws SaslException {
         // init quorum auth server & learner
+        // 主要是判断是否启动了仲裁身份验证
         if (isQuorumSaslAuthEnabled()) {
             Set<String> authzHosts = new HashSet<String>();
             for (QuorumServer qs : getView().values()) {
@@ -921,9 +926,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         if (!getView().containsKey(myid)) {
             throw new RuntimeException("My id " + myid + " not in the peer list");
          }
+         // 还原内存数据
         loadDataBase();
+        // 启动网络模块
         startServerCnxnFactory();
         try {
+            // 启动adminServer，默认这个服务怎么也不做，zookeeper自带jetty服务器
             adminServer.start();
         } catch (AdminServerException e) {
             LOG.warn("Problem starting AdminServer", e);
@@ -931,6 +939,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         }
         // 开始选举
         startLeaderElection();
+        // 开始jvm监控，主要监控jvm导致是系统停顿
         startJvmPauseMonitor();
         super.start();
     }
@@ -987,6 +996,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     synchronized public void startLeaderElection() {
         try {
             if (getPeerState() == ServerState.LOOKING) {
+                // 如果服务的状态是LOOKING，创建Vote对象
                 currentVote = new Vote(myid, getLastLoggedZxid(), getCurrentEpoch());
             }
         } catch(IOException e) {
@@ -1067,6 +1077,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     /**
+     * 返回此服务器的最高事务ID zxid
      * returns the highest zxid that this host has seen
      *
      * @return the highest zxid for this host
@@ -1099,17 +1110,22 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         Election le=null;
 
         //TODO: use a factory rather than a switch
+        // 选择选举算法类型
         switch (electionAlgorithm) {
         case 1:
+            // 这个表示弃用了
             le = new AuthFastLeaderElection(this);
             break;
         case 2:
+            // 这个表示弃用了
             le = new AuthFastLeaderElection(this, true);
             break;
         case 3:
+            // 一般使用这个，请认准此算法
             QuorumCnxManager qcm = createCnxnManager();
             QuorumCnxManager oldQcm = qcmRef.getAndSet(qcm);
             if (oldQcm != null) {
+                // Clobbering已经设置了QuorumCnxManager（重启领导者选举？）
                 LOG.warn("Clobbering already-set QuorumCnxManager (restarting leader election?)");
                 oldQcm.halt();
             }
@@ -1120,7 +1136,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 fle.start();
                 le = fle;
             } else {
-                LOG.error("Null listener when initializing cnx manager");
+                LOG.error("Null listener when initializing cnx manager 初始化cnx管理器时为空侦听器");
             }
             break;
         default:

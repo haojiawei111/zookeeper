@@ -161,6 +161,7 @@ public class QuorumPeerMain {
       try {
           ServerMetrics.metricsProviderInitialized(metricsProvider);
 
+          // 创建网络模块
           ServerCnxnFactory cnxnFactory = null;
           if (config.getClientPortAddress() != null) { //配置文件中 clientPortAddress
               cnxnFactory = ServerCnxnFactory.createFactory();
@@ -168,7 +169,7 @@ public class QuorumPeerMain {
                       config.getMaxClientCnxns(), // maxClientCnxns 默认60
                       config.getClientPortListenBacklog(), false);//clientPortListenBacklog   默认-1
           }
-
+          //创建secure网络模块
           ServerCnxnFactory secureCnxnFactory = null;
           if (config.getSecureClientPortAddress() != null) { // 配置文件中 secureClientPortAddress
               secureCnxnFactory = ServerCnxnFactory.createFactory();
@@ -178,23 +179,30 @@ public class QuorumPeerMain {
           }
 
           quorumPeer = getQuorumPeer();
+          // 设置FileTxnSnapLog对象
           quorumPeer.setTxnFactory(new FileTxnSnapLog(
                       config.getDataLogDir(), // dataLogDir
                       config.getDataDir())); // dataDir
+
           quorumPeer.enableLocalSessions(config.areLocalSessionsEnabled()); //localSessionsEnabled 默认false
           quorumPeer.enableLocalSessionsUpgrading(
               config.isLocalSessionsUpgradingEnabled()); // localSessionsUpgradingEnabled 默认false
 //          quorumPeer.setQuorumPeers(config.getAllMembers());
+
+          // 设置选举算法
           quorumPeer.setElectionType(config.getElectionAlg()); // electionAlg  默认是3  只支持1、2、3
+          // 从myid文件中读取
           quorumPeer.setMyid(config.getServerId()); //myid  myid文件中配置  默认-1 standalone模式不需要myid文件
           quorumPeer.setTickTime(config.getTickTime()); //tickTime  心跳时间 默认3000
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout()); //minSessionTimeout  默认3000 * 2
           quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout()); //maxSessionTimeout  默认3000 * 20
           quorumPeer.setInitLimit(config.getInitLimit()); //initLimit
           quorumPeer.setSyncLimit(config.getSyncLimit()); //syncLimit
+          // 观察者端口
           quorumPeer.setObserverMasterPort(config.getObserverMasterPort()); //observerMasterPort
           quorumPeer.setConfigFileName(config.getConfigFilename());  //配置文件路径
           quorumPeer.setClientPortListenBacklog(config.getClientPortListenBacklog()); //clientPortListenBacklog  默认-1
+          // 创建ZKDatabase
           quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));  //quorumPeer.getTxnFactory()拿到了上面传入的new FileTxnSnapLog(config.getDataLogDir(),dataLogDirconfig.getDataDir())对象
 
           quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);

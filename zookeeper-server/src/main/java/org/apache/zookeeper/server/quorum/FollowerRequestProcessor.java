@@ -32,8 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This RequestProcessor forwards any requests that modify the state of the
- * system to the Leader.
+ * This RequestProcessor forwards any requests that modify the state of the system to the Leader.
+ * Followerd的第一个处理器是FollowerRequestProcessor
+ * 此RequestProcessor将修改系统状态的所有请求（事务请求）转发给Leader。
  */
 public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
         RequestProcessor {
@@ -59,17 +60,21 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
     public void run() {
         try {
             while (!finished) {
+                // 从队列中取出请求
                 Request request = queuedRequests.take();
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK,
                             'F', request, "");
                 }
+                // 如果是关闭的请求，退出线程
                 if (request == Request.requestOfDeath) {
                     break;
                 }
                 // We want to queue the request to be processed before we submit
                 // the request to the leader so that we are ready to receive
                 // the response
+                // 除了requestOfDeath请求，其他所有请求都传递给后面的处理链
+                // 先交给CommitProcessor，最终投票通过后，会通过CommitProcessor的commit方法最终提交事务
                 nextProcessor.processRequest(request);
 
                 // We now ship the request to the leader. As with all
@@ -77,9 +82,13 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 // path, but different from others, we need to keep track
                 // of the sync operations this follower has pending, so we
                 // add it to pendingSyncs.
+                // 我们现在将请求发送给领导者。与所有其他仲裁操作一样，sync也遵循此代码路径，
+                // 但与其他代码不同，我们需要跟踪跟随者已挂起的同步操作，因此我们将其添加到pendingSyncs。
                 switch (request.type) {
                 case OpCode.sync:
+                    // 添加到pendingSyncs队列
                     zks.pendingSyncs.add(request);
+                    // // 转发事务请求给leader
                     zks.getFollower().request(request);
                     break;
                 case OpCode.create:
@@ -93,12 +102,15 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 case OpCode.setACL:
                 case OpCode.multi:
                 case OpCode.check:
+                    // 转发事务请求给leader
                     zks.getFollower().request(request);
                     break;
                 case OpCode.createSession:
                 case OpCode.closeSession:
                     // Don't forward local sessions to the leader.
+                    // 不要将本地会话转发给领导者。
                     if (!request.isLocalSession()) {
+                        // 创建回话和关闭会话，但不是本地会话就会发送请求给leader
                         zks.getFollower().request(request);
                     }
                     break;

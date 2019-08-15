@@ -105,6 +105,7 @@ public class Request {
     
     /**
      * If this is a create or close request for a local-only session.
+     * 如果这是仅限本地会话的创建或关闭请求。
      */
     private boolean isLocalSession = false;
 

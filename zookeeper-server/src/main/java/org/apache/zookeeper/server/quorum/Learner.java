@@ -178,12 +178,14 @@ public class Learner {
     
     /**
      * send a request packet to the leader
+     * 向领导者发送请求包
      *
      * @param request
      *                the request from the client
      * @throws IOException
      */
     void request(Request request) throws IOException {
+        // 反序列化
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream oa = new DataOutputStream(baos);
         oa.writeLong(request.sessionId);
