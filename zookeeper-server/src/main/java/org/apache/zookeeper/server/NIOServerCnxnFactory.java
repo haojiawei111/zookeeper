@@ -529,7 +529,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
         /**
          * Iterate over the queue of connections ready to resume selection,
          * and restore their interest ops selection mask.
-         * 迭代准备恢复选择的连接队列，*并恢复他们感兴趣的操作选择掩码。
+         * 迭代准备恢复选择的连接队列，并恢复他们感兴趣的操作选择掩码。
          */
         private void processInterestOpsUpdateRequests() {
             SelectionKey key;
