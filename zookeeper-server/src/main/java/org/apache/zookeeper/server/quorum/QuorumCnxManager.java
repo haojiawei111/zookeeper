@@ -117,6 +117,7 @@ public class QuorumCnxManager {
 
     /*
      * Protocol identifier used among peers
+     * 对等体之间使用的协议标识
      */
     public static final long PROTOCOL_VERSION = -65536L;
 
@@ -233,8 +234,9 @@ public class QuorumCnxManager {
                         "Got unrecognized protocol version %s", protocolVersion);
             }
 
+            // 读取serverID
             sid = din.readLong();
-
+            // 读取remaining的长度
             int remaining = din.readInt();
             if (remaining <= 0 || remaining > maxBuffer) {
                 throw new InitialMessageException(
@@ -249,10 +251,11 @@ public class QuorumCnxManager {
                         "Read only %s bytes out of %s sent by server %s",
                         num_read, remaining, sid);
             }
-
+            // 解析出连接的地址
             String addr = new String(b);
             String[] host_port;
             try {
+                // 端口 而且是两个端口
                 host_port = ConfigUtils.getHostAndPort(addr);
             } catch (ConfigException e) {
                 throw new InitialMessageException("Badly formed address: %s", addr);
@@ -264,13 +267,15 @@ public class QuorumCnxManager {
 
             int port;
             try {
+                // 拿到ip+端口，端口号为选举端口
                 port = Integer.parseInt(host_port[1]);
             } catch (NumberFormatException e) {
                 throw new InitialMessageException("Bad port number: %s", host_port[1]);
             } catch (ArrayIndexOutOfBoundsException e) {
                 throw new InitialMessageException("No port number in: %s", addr);
             }
-
+            // host_port[0] ip地址
+            // host_port[1] 端口号
             return new InitialMessage(sid, new InetSocketAddress(host_port[0], port));
         }
     }
@@ -499,10 +504,10 @@ public class QuorumCnxManager {
      *
      */
     public void receiveConnection(final Socket sock) {
+        // 根据socket创建输入流，然后进入handleConnection
         DataInputStream din = null;
         try {
-            din = new DataInputStream(
-                    new BufferedInputStream(sock.getInputStream()));
+            din = new DataInputStream(new BufferedInputStream(sock.getInputStream()));
 
             handleConnection(sock, din);
         } catch (IOException e) {
@@ -545,17 +550,26 @@ public class QuorumCnxManager {
         }
     }
 
-    private void handleConnection(Socket sock, DataInputStream din)
-            throws IOException {
+    /**
+     * handleConnection处理网络连接请求，通过输入流获取initMessage,然后根据sid判断是否通过连接申请。
+     * 如果不通过则自己建立与远处节点连接，通过则初始化SendWorker和RecvWorker等线程，
+     * @param sock
+     * @param din
+     * @throws IOException
+     */
+    private void handleConnection(Socket sock, DataInputStream din) throws IOException {
         Long sid = null, protocolVersion = null;
         InetSocketAddress electionAddr = null;
 
         try {
+            // 读取-协议版本
             protocolVersion = din.readLong();
             if (protocolVersion >= 0) { // this is a server id and not a protocol version
+                // 这是服务器ID而不是协议版本
                 sid = protocolVersion;
             } else {
                 try {
+                    // 获取serverID以及IP+选举端口
                     InitialMessage init = InitialMessage.parse(protocolVersion, din);
                     sid = init.sid;
                     electionAddr = init.electionAddr;
@@ -568,11 +582,11 @@ public class QuorumCnxManager {
 
             if (sid == QuorumPeer.OBSERVER_ID) {
                 /*
-                 * Choose identifier at random. We need a value to identify
-                 * the connection.
+                 * Choose identifier at random. We need a value to identify the connection.
+                 * 随机选择标识符。我们需要一个值来识别连接。
                  */
                 sid = observerCounter.getAndDecrement();
-                LOG.info("Setting arbitrary identifier to observer: " + sid);
+                LOG.info("Setting arbitrary identifier to observer 将任意标识符设置为观察者: " + sid);
             }
         } catch (IOException e) {
             LOG.warn("Exception reading or writing challenge: {}", e);
@@ -580,15 +594,18 @@ public class QuorumCnxManager {
             return;
         }
 
-        // do authenticating learner
+        // do authenticating learner 认证learner
         authServer.authenticate(sock, din);
         //If wins the challenge, then close the new connection.
+        //如果远处节点sid比自己的sid小，挑战成功，则关闭socket，自己申请与远程节点连接
         if (sid < self.getId()) {
+            // 如果 连接的serverId < 本机的serverId
             /*
              * This replica might still believe that the connection to sid is
              * up, so we have to shut down the workers before trying to open a
              * new connection.
              */
+            //先关闭sendworker
             SendWorker sw = senderWorkerMap.get(sid);
             if (sw != null) {
                 sw.finish();
@@ -597,9 +614,9 @@ public class QuorumCnxManager {
             /*
              * Now we start a new connection
              */
-            LOG.debug("Create new connection to server: {}", sid);
+            LOG.debug("Create new connection to server 创建与服务器的新连接: {}", sid);
             closeSocket(sock);
-
+            //自己重新申请连接
             if (electionAddr != null) {
                 connectOne(sid, electionAddr);
             } else {
@@ -607,6 +624,7 @@ public class QuorumCnxManager {
             }
 
         } else { // Otherwise start worker threads to receive data.
+            // 挑战失败使用连接启动worker线程，准备接收和发送选举消息
             SendWorker sw = new SendWorker(sock, sid);
             RecvWorker rw = new RecvWorker(sock, din, sid, sw);
             sw.setRecv(rw);
@@ -618,7 +636,7 @@ public class QuorumCnxManager {
             }
 
             senderWorkerMap.put(sid, sw);
-
+            // SEND_CAPACITY = 1
             queueSendMap.putIfAbsent(sid,
                     new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
 
@@ -635,6 +653,7 @@ public class QuorumCnxManager {
         /*
          * If sending message to myself, then simply enqueue it (loopback).
          */
+        //如果接受者是自己，直接放置到接收队列
         if (this.mySid == sid) {
              b.position(0);
              addToRecvQueue(new Message(b.duplicate(), sid));
@@ -642,6 +661,7 @@ public class QuorumCnxManager {
              * Otherwise send to the corresponding thread to send.
              */
         } else {
+            //否则发送到对应的发送队列上
              /*
               * Start a new connection if doesn't have one already.
               */
@@ -653,6 +673,7 @@ public class QuorumCnxManager {
              } else {
                  addToSendQueue(bq, b);
              }
+            //连接申请
              connectOne(sid);
 
         }
@@ -915,7 +936,6 @@ public class QuorumCnxManager {
                     }
 
                     ss.setReuseAddress(true);
-
                     if (self.getQuorumListenOnAllIPs()) {
                         int port = self.getElectionAddress().getPort();
                         addr = new InetSocketAddress(port);
@@ -941,9 +961,11 @@ public class QuorumCnxManager {
                             // enabled. This is required because sasl server
                             // authentication process may take few seconds to finish,
                             // this may delay next peer connection requests.
+                            //验证方式
                             if (quorumSaslAuthEnabled) {
                                 receiveConnectionAsync(client);
                             } else {
+                                //非验证方式
                                 receiveConnection(client);
                             }
                             numRetries = 0;

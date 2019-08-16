@@ -93,9 +93,11 @@ public class FastLeaderElection implements Election {
             "zookeeper.fastleader.maxNotificationInterval";
 
     static {
+        // "zookeeper.fastleader.minNotificationInterval"
         minNotificationInterval = Integer.getInteger(MIN_NOTIFICATION_INTERVAL,
                 minNotificationInterval);
         LOG.info("{}={}", MIN_NOTIFICATION_INTERVAL, minNotificationInterval);
+        // "zookeeper.fastleader.maxNotificationInterval"
         maxNotificationInterval = Integer.getInteger(MAX_NOTIFICATION_INTERVAL,
                 maxNotificationInterval);
         LOG.info("{}={}", MAX_NOTIFICATION_INTERVAL, maxNotificationInterval);
@@ -106,7 +108,7 @@ public class FastLeaderElection implements Election {
      * communication between peers, and QuorumCnxManager manages
      * such connections.
      */
-    // 管理服务器之间的连接
+    // 管理服务器之间的连接,zookeeper选举网络结构
     QuorumCnxManager manager;
 
     private SyncedLearnerTracker leadingVoteSet;
@@ -565,6 +567,8 @@ public class FastLeaderElection implements Election {
         /**
          * Constructor of class Messenger.
          *
+         * 创建WorkerSender和WorkerReceiver两个线程
+         *
          * @param manager   Connection manager
          */
         Messenger(QuorumCnxManager manager) {
@@ -574,6 +578,7 @@ public class FastLeaderElection implements Election {
             this.wsThread = new Thread(this.ws,
                     "WorkerSender[myid=" + self.getId() + "]");
             this.wsThread.setDaemon(true);// 设置为守护线程
+
             // 创建WorkerReceiver
             this.wr = new WorkerReceiver(manager);
             // 创建线程

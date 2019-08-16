@@ -622,6 +622,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     /**
      * Whether or not to listen on all IPs for the two quorum ports
      * (broadcast and fast leader election).
+     * 是否监听两个仲裁端口的所有IP （广播和快速领导者选举）。
      */
     protected boolean quorumListenOnAllIPs = false;
 
