@@ -159,8 +159,8 @@ public class QuorumCnxManager {
     final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;
     // 每个远程节点都会定义一个消息发型队列
     final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
+    // 每个远程节点最后发送的消息
     final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
-
     /*
      * Reception queue
      * 本节点的消息接收队列
@@ -780,8 +780,8 @@ public class QuorumCnxManager {
 
 
     /**
-     * Try to establish a connection with each server if one
-     * doesn't exist.
+     * Try to establish a connection with each server if one doesn't exist.
+     * 尝试与每个服务器建立连接（如果不存在）。
      */
 
     public void connectAll(){

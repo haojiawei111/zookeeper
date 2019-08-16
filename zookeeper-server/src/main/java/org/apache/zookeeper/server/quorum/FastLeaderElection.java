@@ -282,18 +282,20 @@ public class FastLeaderElection implements Election {
                         // The current protocol and two previous generations all send at least 28 bytes
                         // 当前协议和前两代都发送至少28个字节
                         if (response.buffer.capacity() < 28) {
-                            LOG.error("Got a short response: " + response.buffer.capacity());
+                            LOG.error("Got a short response得到了简短的回复: " + response.buffer.capacity());
                             continue;
                         }
 
                         // this is the backwardCompatibility mode in place before ZK-107
                         // It is for a version of the protocol in which we didn't send peer epoch
                         // With peer epoch and version the message became 40 bytes
+                        // 这是ZK-107之前的后向兼容模式它是我们没有发送对等时期的协议版本，对于对等时期和版本，消息变为40字节
                         boolean backCompatibility28 = (response.buffer.capacity() == 28);
 
                         // this is the backwardCompatibility mode for no version information
+                        // 这是没有版本信息的向后兼容模式
                         boolean backCompatibility40 = (response.buffer.capacity() == 40);
-
+                        // 简单理解就是复位（Reset） 但不清除数据（position=0, limit=capacity）
                         response.buffer.clear();
 
                         // Instantiate Notification and set its attributes实例化通知并设置其属性
