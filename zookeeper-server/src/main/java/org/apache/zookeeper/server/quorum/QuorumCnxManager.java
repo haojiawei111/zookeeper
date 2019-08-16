@@ -304,8 +304,7 @@ public class QuorumCnxManager {
         this.view = view;
         this.listenOnAllIPs = listenOnAllIPs;
 
-        initializeAuth(mySid, authServer, authLearner, quorumCnxnThreadsSize,
-                quorumSaslAuthEnabled);
+        initializeAuth(mySid, authServer, authLearner, quorumCnxnThreadsSize, quorumSaslAuthEnabled);
 
         // Starts listener thread that waits for connection requests
         listener = new Listener();
@@ -340,6 +339,7 @@ public class QuorumCnxManager {
                 return t;
             }
         };
+        // 创建线程池
         this.connectionExecutor = new ThreadPoolExecutor(3,
                 quorumCnxnThreadsSize, 60, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(), daemonThFactory);
@@ -876,6 +876,8 @@ public class QuorumCnxManager {
      * 继承ZooKeeperThread，主要监听electionPort，不断的接收外部连接
      * Listener主要监听本机配置的electionPort，不断的接收外部连接
      *
+     * Listener会首先被启动
+     *
      * Thread to listen on some port
      */
     public class Listener extends ZooKeeperThread {
@@ -889,6 +891,8 @@ public class QuorumCnxManager {
         }
 
         /**
+         * Lisener的run方式就是基于java io网络通信方式的监听
+         *
          * Sleeps on accept().
          */
         @Override
@@ -897,6 +901,7 @@ public class QuorumCnxManager {
             InetSocketAddress addr;
             Socket client = null;
             Exception exitException = null;
+            // numRetries 重试次数不能超过3次
             while((!shutdown) && (numRetries < 3)){
                 try {
                     if (self.shouldUsePortUnification()) {
@@ -920,7 +925,8 @@ public class QuorumCnxManager {
                         self.recreateSocketAddresses(self.getId());
                         addr = self.getElectionAddress();
                     }
-                    LOG.info("My election bind port: " + addr.toString());
+                    // 选举端口  配置文件中serverXXX中的第二个端口是选举端口
+                    LOG.info("我的选举绑定端口 My election bind port: " + addr.toString());
                     setName(addr.toString());
                     ss.bind(addr);
                     while (!shutdown) {
