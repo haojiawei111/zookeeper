@@ -62,6 +62,21 @@ import javax.net.ssl.SSLSocket;
 import static org.apache.zookeeper.common.NetUtils.formatInetAddr;
 
 /**
+ * 每台服务器在启动的过程中，会启动一个QuorumPeerManager，负责各台服务器之间的底层Leader选举过程中的网络通信。
+ *
+ * 内部类
+ *   SendWorker类作为网络IO的发送者，从发送队列取出，发给对应sid的机器
+ *   Message类定义了消息结构，包含sid以及消息体ByteBuffer
+ *   RecvWorker类作为网络IO的接受者
+ *   Listener类作为electionPort端口的监听器，等待其他机器的连接
+ * 属性
+ *   recvQueue作为接受队列
+ *   queueSendMap表示每个sid对应的发送的发送队列
+ * 函数
+ *   连接相关
+ *   sender，recv生产消费相关
+ *   其他
+ *
  * This class implements a connection manager for leader election using TCP. It
  * maintains one connection for every pair of servers. The tricky part is to
  * guarantee that there is exactly one connection for every pair of servers that
@@ -138,13 +153,16 @@ public class QuorumCnxManager {
 
     /*
      * Mapping from Peer to Thread number
+     * 对每一个远程节点都会定义一个SendWorker
      */
     final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;
+    // 每个远程节点都会定义一个消息发型队列
     final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
     final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
 
     /*
      * Reception queue
+     * 本节点的消息接收队列
      */
     public final ArrayBlockingQueue<Message> recvQueue;
     /*
@@ -173,7 +191,9 @@ public class QuorumCnxManager {
      */
     private final boolean tcpKeepAlive = Boolean.getBoolean("zookeeper.tcpKeepAlive");
 
+    // 这个类定义了server之间传输的消息结构
     static public class Message {
+        // sid为消息来源方的sid，buffer即消息体
         Message(ByteBuffer buffer, long sid) {
             this.buffer = buffer;
             this.sid = sid;
@@ -186,6 +206,7 @@ public class QuorumCnxManager {
     /*
      * This class parses the initial identification sent out by peers with their
      * sid & hostname.
+     * 该类用sid和hostname解析对等体发出的初始标识。
      */
     static public class InitialMessage {
         public Long sid;
@@ -263,8 +284,10 @@ public class QuorumCnxManager {
                             boolean listenOnAllIPs,
                             int quorumCnxnThreadsSize,
                             boolean quorumSaslAuthEnabled) {
+        // RECV_CAPACITY = 100
         this.recvQueue = new ArrayBlockingQueue<Message>(RECV_CAPACITY);
         this.queueSendMap = new ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>>();
+
         this.senderWorkerMap = new ConcurrentHashMap<Long, SendWorker>();
         this.lastMessageSent = new ConcurrentHashMap<Long, ByteBuffer>();
 
@@ -274,9 +297,10 @@ public class QuorumCnxManager {
         }
 
         this.self = self;
-
+        // 本节点的serverId
         this.mySid = mySid;
         this.socketTimeout = socketTimeout;
+        // 配置文件中配置的服务器集合视图
         this.view = view;
         this.listenOnAllIPs = listenOnAllIPs;
 
@@ -380,6 +404,7 @@ public class QuorumCnxManager {
 
     /**
      * Thread to send connection request to peer server.
+     * 线程向对等服务器发送连接请求。
      */
     private class QuorumConnectionReqThread extends ZooKeeperThread {
         final Socket sock;
@@ -505,6 +530,7 @@ public class QuorumCnxManager {
 
     /**
      * Thread to receive connection request from peer server.
+     * 用于从对等服务器接收连接请求的线程。
      */
     private class QuorumConnectionReceiverThread extends ZooKeeperThread {
         private final Socket sock;
@@ -847,6 +873,9 @@ public class QuorumCnxManager {
     }
 
     /**
+     * 继承ZooKeeperThread，主要监听electionPort，不断的接收外部连接
+     * Listener主要监听本机配置的electionPort，不断的接收外部连接
+     *
      * Thread to listen on some port
      */
     public class Listener extends ZooKeeperThread {
@@ -896,6 +925,7 @@ public class QuorumCnxManager {
                     ss.bind(addr);
                     while (!shutdown) {
                         try {
+                            //不断接受连接
                             client = ss.accept();
                             setSockOpts(client);
                             LOG.info("Received connection request "
@@ -977,20 +1007,24 @@ public class QuorumCnxManager {
     }
 
     /**
+     * “发送者”，继承ZooKeeperThread，线程不断地从发送队列取出，发给对应sid的机器
+     *
      * Thread to send messages. Instance waits on a queue, and send a message as
      * soon as there is one available. If connection breaks, then opens a new
      * one.
+     * 线程发送消息。实例等待队列，并在有可用消息时立即发送消息。如果连接断开，则打开一个新的。
      */
     class SendWorker extends ZooKeeperThread {
-        Long sid;
+        Long sid; //目标机器sid，不是当前机器sid
         Socket sock;
-        RecvWorker recvWorker;
+        RecvWorker recvWorker; //该sid对应的RecvWorker
         volatile boolean running = true;
         DataOutputStream dout;
 
         /**
          * An instance of this thread receives messages to send
          * through a queue and sends them to the server sid.
+         * 此线程的一个实例接收通过队列发送的消息，并将它们发送到服务器sid。
          *
          * @param sock
          *            Socket to remote peer
@@ -1003,6 +1037,7 @@ public class QuorumCnxManager {
             this.sock = sock;
             recvWorker = null;
             try {
+                // Socket输出流
                 dout = new DataOutputStream(sock.getOutputStream());
             } catch (IOException e) {
                 LOG.error("Unable to access socket output stream", e);
@@ -1064,9 +1099,14 @@ public class QuorumCnxManager {
             dout.flush();
         }
 
+        // run方法
+        // 在SendWorker中，一旦Zookeeper发现针对当前服务器的消息发送队列为空，
+        // 那么此时需要从lastMessageSent中取出一个最近发送过的消息来进行再次发送，
+        // 这是为了解决接收方在消息接收前或者接收到消息后服务器挂了，导致消息尚未被正确处理。
+        // 同时，Zookeeper能够保证接收方在处理消息时，会对重复消息进行正确的处理。
         @Override
         public void run() {
-            threadCnt.incrementAndGet();
+            threadCnt.incrementAndGet();//线程数+1
             try {
                 /**
                  * If there is nothing in the queue to send, then we
@@ -1081,9 +1121,9 @@ public class QuorumCnxManager {
                  * message than that stored in lastMessage. To avoid sending
                  * stale message, we should send the message in the send queue.
                  */
-                ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);
+                ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);//找到sid对应需要send的队列
                 if (bq == null || isSendQueueEmpty(bq)) {
-                   ByteBuffer b = lastMessageSent.get(sid);
+                   ByteBuffer b = lastMessageSent.get(sid);//如果没有什么发的，就把上一次发的再发一遍(重发能够正确处理)
                    if (b != null) {
                        LOG.debug("Attempting to send lastMessage to sid=" + sid);
                        send(b);
@@ -1102,16 +1142,16 @@ public class QuorumCnxManager {
                         ArrayBlockingQueue<ByteBuffer> bq = queueSendMap
                                 .get(sid);
                         if (bq != null) {
-                            b = pollSendQueue(bq, 1000, TimeUnit.MILLISECONDS);
-                        } else {
+                            b = pollSendQueue(bq, 1000, TimeUnit.MILLISECONDS);//从发送队列里面取出消息
+                        } else {//队列没有记录在map中
                             LOG.error("No queue of incoming messages for " +
                                       "server " + sid);
                             break;
                         }
 
                         if(b != null){
-                            lastMessageSent.put(sid, b);
-                            send(b);
+                            lastMessageSent.put(sid, b);//更新最后一次发送的
+                            send(b);//发送
                         }
                     } catch (InterruptedException e) {
                         LOG.warn("Interrupted while waiting for message on queue",
@@ -1129,13 +1169,17 @@ public class QuorumCnxManager {
     }
 
     /**
+     * “接受者”，类似SendWorker，继承ZooKeeperThread，线程不断地从网络IO中读取数据，放入接收队列
+     *
      * Thread to receive messages. Instance waits on a socket read. If the
      * channel breaks, then removes itself from the pool of receivers.
+     * 用于接收消息的线程。实例等待套接字读取。如果通道中断，则将其自身从接收器池中移除。
      */
     class RecvWorker extends ZooKeeperThread {
-        Long sid;
+        Long sid;//来源方sid
         Socket sock;
         volatile boolean running = true;
+        // Socket的输入流
         final DataInputStream din;
         final SendWorker sw;
 
@@ -1183,7 +1227,7 @@ public class QuorumCnxManager {
                      * Reads the first int to determine the length of the
                      * message
                      */
-                    int length = din.readInt();
+                    int length = din.readInt();//获取长度
                     if (length <= 0 || length > PACKETMAXSIZE) {
                         throw new IOException(
                                 "Received packet with invalid packet: "
@@ -1194,6 +1238,7 @@ public class QuorumCnxManager {
                      */
                     final byte[] msgArray = new byte[length];
                     din.readFully(msgArray, 0, length);
+                    // 解析出byteBuffer并添加到队列中去
                     addToRecvQueue(new Message(ByteBuffer.wrap(msgArray), sid));
                 }
             } catch (Exception e) {
@@ -1211,7 +1256,7 @@ public class QuorumCnxManager {
      * Inserts an element in the specified queue. If the Queue is full, this
      * method removes an element from the head of the Queue and then inserts
      * the element at the tail. It can happen that the an element is removed
-     * by another thread in {@link SendWorker#processMessage() processMessage}
+     * by another thread in
      * method before this method attempts to remove an element from the queue.
      * This will cause {@link ArrayBlockingQueue#remove() remove} to throw an
      * exception, which is safe to ignore.
