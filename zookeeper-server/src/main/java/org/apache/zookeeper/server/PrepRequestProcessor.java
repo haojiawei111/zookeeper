@@ -91,12 +91,13 @@ import java.util.concurrent.LinkedBlockingQueue;
     //PrepRequestProcessor，其通常是请求处理链的第一个处理器
     // PrepRequestProcessor继承了Thread类并实现了RequestProcessor接口，表示其可以作为线程使用。
     //类的核心属性有submittedRequests和nextProcessor，前者表示已经提交的请求，而后者表示提交的下个处理器
-public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
-        RequestProcessor {
+public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(PrepRequestProcessor.class);
     // 是否跳过ACL,需查看系统配置
     static boolean skipACL;
+
     static {
+        // 是否跳过ACL,需查看系统配置
         skipACL = System.getProperty("zookeeper.skipACL", "no").equals("yes");
         if (skipACL) {
             LOG.info("zookeeper.skipACL==\"yes\", ACL checks will be skipped");
@@ -117,8 +118,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
     ZooKeeperServer zks;
 
     //构造函数首先会调用父类Thread的构造函数，然后利用构造函数参数给nextProcessor和zks赋值
-    public PrepRequestProcessor(ZooKeeperServer zks,
-            RequestProcessor nextProcessor) {
+    public PrepRequestProcessor(ZooKeeperServer zks, RequestProcessor nextProcessor) {
         // 调用父类Thread构造函数
         super("ProcessThread(sid:" + zks.getServerId() + " cport:"
                 + zks.getClientPort() + "):", zks.getZooKeeperServerListener());
@@ -131,14 +131,16 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
      * method for tests to set failCreate
      * @param b
      */
-    // run函数是对Thread类run函数的重写，其核心逻辑相对简单，即不断从队列中取出request进行处理，其会调用pRequest函数
     public static void setFailCreate(boolean b) {
         failCreate = b;
     }
+
+    // run函数是对Thread类run函数的重写，其核心逻辑相对简单，即不断从队列中取出request进行处理，其会调用pRequest函数
     @Override
     public void run() {
         try {
             while (true) {
+                // 添加Metrics监控
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_SIZE.add(submittedRequests.size());
                 // 从队列中取出一个请求
                 Request request = submittedRequests.take();
@@ -157,7 +159,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                 pRequest(request);
                 ServerMetrics.getMetrics().PREP_PROCESS_TIME.add(Time.currentElapsedTime() - prepStartTime);
             }
-        } catch (RequestProcessorException e) {
+        } catch (RequestProcessorException e) {// 请求处理异常
             if (e.getCause() instanceof XidRolloverException) {
                 LOG.info(e.getCause().getMessage());
             }
@@ -367,7 +369,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
      * singleton, so there will be a single thread calling this code.
      *
      * @param type
-     * @param zxid
+     * @param zxidOpCode.ping
      * @param request
      * @param record
      */
@@ -760,7 +762,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
             case OpCode.createContainer:// 创建节点请求
             case OpCode.create:
             case OpCode.create2:
-                // 新生创建节点请求
+                // 创建节点请求
                 CreateRequest create2Request = new CreateRequest();
                 // 处理请求
                 pRequest2Txn(request.type, zks.getNextZxid(), request, create2Request, true);
@@ -1050,6 +1052,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
 
     // 把请求放入到该请求处理器的队列中去
     public void processRequest(Request request) {
+        //放入请求队列的时间
         request.prepQueueStartTime =  Time.currentElapsedTime();
         submittedRequests.add(request);
         ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUED.add(1);
@@ -1058,6 +1061,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
     public void shutdown() {
         LOG.info("Shutting down");
         submittedRequests.clear();
+        // 向请求队列中放入关闭的请求
         submittedRequests.add(Request.requestOfDeath);
         nextProcessor.shutdown();
     }

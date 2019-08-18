@@ -88,9 +88,12 @@ import java.util.Set;
  * request and services any queries. It is always at the end of a
  * RequestProcessor chain (hence the name), so it does not have a nextProcessor
  * member.
+ * 此请求处理器实际应用与请求关联的任何事务并为任何查询提供服务。
+ * 它始终位于RequestProcessor链的末尾（因此名称），因此它没有nextProcessor成员。
  *
  * This RequestProcessor counts on ZooKeeperServer to populate the
  * outstandingRequests member of ZooKeeperServer.
+ * 此RequestProcessor依靠ZooKeeperServer来填充ZooKeeperServer的outstandingRequests成员。
  */
 // 请求处理链中最后的一个处理器FinalRequestProcessor
 public class FinalRequestProcessor implements RequestProcessor {
@@ -116,8 +119,8 @@ public class FinalRequestProcessor implements RequestProcessor {
             ZooTrace.logRequest(LOG, traceMask, 'E', request, "");
         }
         ProcessTxnResult rc = null;
-        synchronized (zks.outstandingChanges) {
-            // Need to process local session requests
+        synchronized (zks.outstandingChanges) {// 同步块
+            // Need to process local session requests需要处理本地会话请求
             rc = zks.processTxn(request);
 
             // request.hdr is set for write requests, which are the only ones
@@ -152,7 +155,7 @@ public class FinalRequestProcessor implements RequestProcessor {
         // was not being queued — ZOOKEEPER-558) properly. This happens, for example,
         // when the client closes the connection. The server should still close the session, though.
         // Calling closeSession() after losing the cnxn, results in the client close session response being dropped.
-        if (request.type == OpCode.closeSession && connClosedByClient(request)) {
+        if (request.type == OpCode.closeSession && connClosedByClient(request)) {// 请求头不为空并且请求类型为关闭会话
             // We need to check if we can close the session id.
             // Sometimes the corresponding ServerCnxnFactory could be null because
             // we are just playing diffs from the leader.
@@ -555,8 +558,7 @@ public class FinalRequestProcessor implements RequestProcessor {
             err = Code.MARSHALLINGERROR;
         }
 
-        ReplyHeader hdr =
-            new ReplyHeader(request.cxid, lastZxid, err.intValue());
+        ReplyHeader hdr = new ReplyHeader(request.cxid, lastZxid, err.intValue());
 
         updateStats(request, lastOp, lastZxid);
 

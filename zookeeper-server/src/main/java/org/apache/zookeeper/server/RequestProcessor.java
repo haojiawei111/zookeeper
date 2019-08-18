@@ -32,13 +32,13 @@ package org.apache.zookeeper.server;
  */
 // 对于请求处理链而言，所有请求处理器的父接口为RequestProcessor　　
 
+//　　PrepRequestProcessor，通常是请求处理链的第一个处理器。这个可以是单独线程运行
+//
 //　　CommitProcessor，将到来的请求与本地提交的请求进行匹配，这是因为改变系统状态的本地请求的返回结果是到来的请求。这个可以是单独线程运行
 //
 //　　FollowerRequestProcessor，将修改了系统状态的请求转发给Leader。这个可以是单独线程运行
 //
 //　　ObserverRequestProcessor，同FollowerRequestProcessor一样，将修改了系统状态的请求转发给Leader。这个可以是单独线程运行
-//
-//　　PrepRequestProcessor，通常是请求处理链的第一个处理器。这个可以是单独线程运行
 //
 //　　SyncRequestProcessor，发送Sync请求的处理器。这个可以是单独线程运行
 //
