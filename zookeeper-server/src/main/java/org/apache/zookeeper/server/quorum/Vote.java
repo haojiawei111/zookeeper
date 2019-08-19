@@ -20,7 +20,9 @@ package org.apache.zookeeper.server.quorum;
 
 import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 
-
+// id                当前服务器自身的sid
+// zxid              当前服务器最新的zxid值
+// electionEpoch     当前服务器的逻辑时钟
 public class Vote {
     
     public Vote(long id,

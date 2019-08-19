@@ -155,15 +155,18 @@ public class QuorumCnxManager {
     /*
      * Mapping from Peer to Thread number
      * 对每一个远程节点都会定义一个SendWorker
+     * 发送器集合，按SID分组,每个SendWorker消息发送器对应一台远程zookeeper服务器，负责从对应的发送队列取出消息发送
      */
     final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;
     // 每个远程节点都会定义一个消息发型队列
+    // 消息发送队列按SID分组，分别为集群中每台机器分配一个单独队列
     final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
-    // 每个远程节点最后发送的消息
+    // 每个远程节点最后发送的消息  为每个SID保留最近发送过的一个消息
     final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
     /*
      * Reception queue
      * 本节点的消息接收队列
+     * 消息接收队列只有一个
      */
     public final ArrayBlockingQueue<Message> recvQueue;
     /*
@@ -189,6 +192,7 @@ public class QuorumCnxManager {
 
     /*
      * Socket options for TCP keepalive
+     * 保持长连接
      */
     private final boolean tcpKeepAlive = Boolean.getBoolean("zookeeper.tcpKeepAlive");
 
@@ -552,7 +556,11 @@ public class QuorumCnxManager {
 
     /**
      * handleConnection处理网络连接请求，通过输入流获取initMessage,然后根据sid判断是否通过连接申请。
-     * 如果不通过则自己建立与远处节点连接，通过则初始化SendWorker和RecvWorker等线程，
+     * 如果不通过则自己建立与远处节点连接，通过则初始化SendWorker和RecvWorker等线程
+     *
+     * 为了防止两台服务器有重复链接，zookeeper定义了规则，
+     * 只能sid大的去连接sid小的。如果sid小的连接了sid大的，在连接处理程序中会断掉这条连接，然后重新发起连接。
+     *
      * @param sock
      * @param din
      * @throws IOException
@@ -637,9 +645,12 @@ public class QuorumCnxManager {
 
             senderWorkerMap.put(sid, sw);
             // SEND_CAPACITY = 1
-            queueSendMap.putIfAbsent(sid,
-                    new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
-
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
+            //这一点我有个疑问，可以看出上面会先用queueSendMap.containsKey(sid)判断原有sid
+            //是不是已经有对应的消息发送队列，如果没有创建新的，意思是如果有就用旧的消息发送队
+            //列，我的疑问就是这时旧的消息发送队列可能会包含上轮选举的旧消息，为什么这里不对它清
+            //空呢，不清空会把旧的选票信息发给对应的sid服务器，虽然对选举结果没啥影响，但感觉清空
+            //队列效率更高
             sw.start();
             rw.start();
         }
@@ -897,6 +908,7 @@ public class QuorumCnxManager {
      * 继承ZooKeeperThread，主要监听electionPort，不断的接收外部连接
      * Listener主要监听本机配置的electionPort，不断的接收外部连接
      *
+     * 为能互相投票，zookeeper集群的所有机器都需要两两建立起网络连接。QuorumCnxManager启动时，会创建一个ServerSocket来监听Leader选举的通信端口（默认端口是3888）。
      * Listener会首先被启动
      *
      * Thread to listen on some port
@@ -961,6 +973,7 @@ public class QuorumCnxManager {
                             // enabled. This is required because sasl server
                             // authentication process may take few seconds to finish,
                             // this may delay next peer connection requests.
+                            /*接收到其他服务器TCP连接请求时交由receiveConnection处理*/
                             //验证方式
                             if (quorumSaslAuthEnabled) {
                                 receiveConnectionAsync(client);

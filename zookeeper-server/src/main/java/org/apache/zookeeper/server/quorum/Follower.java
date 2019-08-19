@@ -36,6 +36,7 @@ import org.apache.zookeeper.txn.TxnHeader;
 
 /**
  * This class has the control logic for the Follower.
+ * 该类具有Follower的控制逻辑。
  */
 public class Follower extends Learner{
 
@@ -63,7 +64,7 @@ public class Follower extends Learner{
 
     /**
      * the main method called by the follower to follow the leader
-     *跟随者跟随领导者调用的主要方法
+     * 跟随者跟随领导者调用的主要方法
      * @throws InterruptedException
      */
     void followLeader() throws InterruptedException {

@@ -78,6 +78,7 @@ public class Leader implements LearnerMaster {
         LOG.info("TCP NoDelay set to: " + nodelay);
     }
 
+    // 提案
     static public class Proposal  extends SyncedLearnerTracker {
         public QuorumPacket packet;
         public Request request;
@@ -496,7 +497,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * This method is main function that is called to lead
-     这种方法是被称为引导的主要功能
+       这种方法是被称为引导的主要功能
      * @throws IOException
      * @throws InterruptedException
      */

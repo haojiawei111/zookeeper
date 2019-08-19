@@ -463,6 +463,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     /*
      * Record leader election time
+     * 记录leader选举时间
      */
     public long start_fle, end_fle; // fle = fast leader election
     public static final String FLE_TIME_UNIT = "MS";
@@ -548,6 +549,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     /**
      * This is who I think the leader currently is.
+     * 这就是我认为领导者目前是谁。
      */
     volatile private Vote currentVote;
 
@@ -1201,7 +1203,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     boolean shuttingDownLE = false;
-    
+
+    // 核心线程
     @Override
     public void run() {
         // 更新线程名称
@@ -1244,7 +1247,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
              */
             while (running) {
                 switch (getPeerState()) {
-                case LOOKING:
+                case LOOKING:// 进行选举
                     LOG.info("LOOKING");
                     ServerMetrics.getMetrics().LOOKING_COUNT.add(1);
 
