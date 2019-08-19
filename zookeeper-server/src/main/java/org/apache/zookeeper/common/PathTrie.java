@@ -71,6 +71,7 @@ public class PathTrie {
         //构造时，设置parent
         private TrieNode(TrieNode parent) {
             children = new HashMap<String, TrieNode>();
+            // 父节点
             this.parent = parent;
         }
         
@@ -132,8 +133,10 @@ public class PathTrie {
                 if (!children.containsKey(childName)) {
                     return;
                 }
+                // 获取子节点
                 TrieNode childNode = children.get(childName);
                 // this is the only child node.
+                // 如果子节点的子节点个数为1
                 if (childNode.getChildren().length == 1) {  //如果这个儿子只有1个儿子,那么就把这个儿子丢掉
                     childNode.setParent(null);//被删除的子节点,parent设置为空
                     children.remove(childName);
@@ -196,6 +199,7 @@ public class PathTrie {
     /**
      * construct a new PathTrie with
      * a root node of /
+     * 创建根节点
      */
     public PathTrie() {
         this.rootNode = new TrieNode(null);

@@ -221,11 +221,15 @@ public class FileTxnSnapLog {
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions,
                         PlayBackListener listener) throws IOException {
+        //取最近的快照进行恢复
         long deserializeResult = snapLog.deserialize(dt, sessions);
+        // 事务日志对象
         FileTxnLog txnLog = new FileTxnLog(dataDir);
         boolean trustEmptyDB;
         File initFile = new File(dataDir.getParent(), "initialize");
         if (Files.deleteIfExists(initFile.toPath())) {
+            // 如果存在删除这个文件
+            // 找到初始化文件，空数据库不会阻止投票参与
             LOG.info("Initialize file found, an empty database will not block voting participation");
             trustEmptyDB = true;
         } else {
@@ -261,6 +265,8 @@ public class FileTxnSnapLog {
      * This function will fast forward the server database to have the latest
      * transactions in it.  This is the same as restore, but only reads from
      * the transaction logs and not restores from a snapshot.
+     * 此函数将快速转发服务器数据库以在其中包含最新的事务。
+     * 这与还原相同，但只从事务日志读取而不从快照还原。
      * @param dt the datatree to write transactions to.
      * @param sessions the sessions to be restored.
      * @param listener the playback listener to run on the
@@ -270,6 +276,7 @@ public class FileTxnSnapLog {
      */
     public long fastForwardFromEdits(DataTree dt, Map<Long, Integer> sessions,
                                      PlayBackListener listener) throws IOException {
+        // 依据dt最后的事务ID从txnLog中创建事务日志的迭代器
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
         long highestZxid = dt.lastProcessedZxid;
         TxnHeader hdr;
@@ -279,7 +286,7 @@ public class FileTxnSnapLog {
                 // the first valid txn when initialized
                 hdr = itr.getHeader();
                 if (hdr == null) {
-                    //empty logs
+                    //empty logs 空日志
                     return dt.lastProcessedZxid;
                 }
                 if (hdr.getZxid() < highestZxid && highestZxid != 0) {
@@ -289,11 +296,13 @@ public class FileTxnSnapLog {
                     highestZxid = hdr.getZxid();
                 }
                 try {
+                    // 回放事务日志
                     processTransaction(hdr,dt,sessions, itr.getTxn());
                 } catch(KeeperException.NoNodeException e) {
                    throw new IOException("Failed to process transaction type: " +
                          hdr.getType() + " error: " + e.getMessage(), e);
                 }
+                // 执行回调函数
                 listener.onTxnLoaded(hdr, itr.getTxn());
                 if (!itr.next())
                     break;
@@ -335,6 +344,9 @@ public class FileTxnSnapLog {
     
     /**
      * process the transaction on the datatree
+     *
+     * 处理数据树上的事务
+     *
      * @param hdr the hdr of the transaction
      * @param dt the datatree to apply transaction to
      * @param sessions the sessions to be restored
@@ -356,6 +368,7 @@ public class FileTxnSnapLog {
                                 + ((CreateSessionTxn) txn).getTimeOut());
             }
             // give dataTree a chance to sync its lastProcessedZxid
+            // 让dataTree有机会同步它的lastProcessedZxid
             rc = dt.processTxn(hdr, txn);
             break;
         case OpCode.closeSession:
