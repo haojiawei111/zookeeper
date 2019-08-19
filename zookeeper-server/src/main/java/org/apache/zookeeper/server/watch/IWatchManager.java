@@ -75,10 +75,11 @@ public interface IWatchManager {
     /**
      * Distribute the watch event for the given path, but ignore those
      * suppressed ones.
+     * 分配给定路径的监视事件，但忽略那些被抑制的事件。
      *
      * @param path znode path
      * @param type the watch event type
-     * @param suppress the suppressed watcher set
+     * @param suppress the suppressed watcher set 受抑制的观察者集
      *
      * @return the watchers have been notified
      */

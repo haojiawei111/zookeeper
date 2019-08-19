@@ -58,6 +58,7 @@ public class Quotas {
      */
     //zk某个节点path转换成对应的limit path
     public static String quotaPath(String path) {
+        // "/zookeeper/quota"
         return quotaZookeeper + path +
         "/" + limitNode;
     }
@@ -70,6 +71,7 @@ public class Quotas {
      */
     //zk某个节点path转换成对应的stat path
     public static String statPath(String path) {
+        // "/zookeeper/quota"
         return quotaZookeeper + path + "/" +
         statNode;
     }

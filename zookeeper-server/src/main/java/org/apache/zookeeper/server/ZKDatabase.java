@@ -67,14 +67,17 @@ import org.slf4j.LoggerFactory;
  *
  * 此类维护zookeeper 服务器状态的内存数据库，其中包括会话，数据树和提交的日志。它在从磁盘读取日志和快照后启动。
  *
+ * 注意：这个其实就是 读写锁实现缓存
+ *
+ *
  */
 public class ZKDatabase {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZKDatabase.class);
 
     /**
-     * make sure on a clear you take care of
-     * all these members.
+     * make sure on a clear you take care of all these members.
+     * 确保明确你照顾所有这些成员。
      */
     protected DataTree dataTree;
     protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
@@ -91,6 +94,7 @@ public class ZKDatabase {
     public static final int commitLogCount = 500;
     protected static int commitLogBuffer = 700;
     protected Queue<Proposal> committedLog = new ArrayDeque<>();
+    // 读写锁
     protected ReentrantReadWriteLock logLock = new ReentrantReadWriteLock();
     volatile private boolean initialized = false;
 
@@ -106,10 +110,12 @@ public class ZKDatabase {
         this.snapLog = snapLog;
 
         try {
+            // "zookeeper.snapshotSizeFactor"
             snapshotSizeFactor = Double.parseDouble(
                 System.getProperty(SNAPSHOT_SIZE_FACTOR,
                         Double.toString(DEFAULT_SNAPSHOT_SIZE_FACTOR)));
             if (snapshotSizeFactor > 1) {
+                // snapshotSizeFactor不能大于1
                 snapshotSizeFactor = DEFAULT_SNAPSHOT_SIZE_FACTOR;
                 LOG.warn("The configured {} is invalid, going to use " +
                         "the default {}", SNAPSHOT_SIZE_FACTOR,
@@ -248,6 +254,8 @@ public class ZKDatabase {
     };
 
     /**
+     * 恢复dataTree的主要方法
+     *
      * load the database from the disk onto memory and also add
      * the transactions to the committedlog in memory.
      * @return the last valid zxid on disk
@@ -255,11 +263,13 @@ public class ZKDatabase {
      */
     public long loadDataBase() throws IOException {
         long startTime = Time.currentElapsedTime();
+        // commitProposalPlaybackListener 回调函数
         long zxid = snapLog.restore(dataTree, sessionsWithTimeouts, commitProposalPlaybackListener);
+        // 初始化完成
         initialized = true;
         long loadTime = Time.currentElapsedTime() - startTime;
         ServerMetrics.getMetrics().DB_INIT_TIME.add(loadTime);
-        LOG.info("Snapshot loaded in " + loadTime + " ms");
+        LOG.info("Snapshot loaded in " + loadTime + " ms 恢复dataTree所用的时间");
         return zxid;
     }
 
@@ -274,6 +284,11 @@ public class ZKDatabase {
         return zxid;
     }
 
+    /**
+     * dataTree 加载完成的回调函数
+     * @param hdr
+     * @param txn
+     */
     private void addCommittedProposal(TxnHeader hdr, Record txn) {
         Request r = new Request(0, hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
         addCommittedProposal(r);
@@ -283,9 +298,11 @@ public class ZKDatabase {
      * maintains a list of last <i>committedLog</i>
      *  or so committed requests. This is used for
      * fast follower synchronization.
+     * 维护最后<i> committedLog </ i> *或已提交请求的列表。这用于快速跟随者同步。
      * @param request committed request
      */
     public void addCommittedProposal(Request request) {
+        // 拿到写锁
         WriteLock wl = logLock.writeLock();
         try {
             wl.lock();
@@ -445,7 +462,9 @@ public class ZKDatabase {
     }
 
     /**
-     * the process txn on the data
+     * ‘
+     * 执行修改dataTree核心方法
+     *
      * @param hdr the txnheader for the txn
      * @param txn the transaction that needs to be processed
      * @return the result of processing the transaction on this

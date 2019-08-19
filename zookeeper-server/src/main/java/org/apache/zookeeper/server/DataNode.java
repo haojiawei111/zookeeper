@@ -61,7 +61,7 @@ public class DataNode implements Record {
      * does not contain the parent path -- just the last part of the path. This
      * should be synchronized on except deserializing (for speed up issues).
      */
-    //子节点集合   这个数次那个不允许外部修改
+    //子节点集合   这个属性不允许外部修改
     private Set<String> children = null;
 
     private static final Set<String> EMPTY_SET = Collections.emptySet();
@@ -142,6 +142,7 @@ public class DataNode implements Record {
 
         return Collections.unmodifiableSet(children);
     }
+
     // 复制状态
     synchronized public void copyStat(Stat to) {
         to.setAversion(stat.getAversion());

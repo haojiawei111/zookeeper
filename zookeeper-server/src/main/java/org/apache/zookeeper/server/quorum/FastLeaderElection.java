@@ -41,6 +41,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
+ * Leader选举小结
+ * 1.server启动时默认选举自己，并向整个集群广播
+ * 2.收到消息时，通过3层判断：逻辑时钟，zxid，server id大小判断是否同意对方，如果同意，则修改自己的选票，并向集群广播
+ * 3.QuorumCnxManager负责IO处理，每2个server建立一个连接，只允许id大的server连id小的server，每个server启动单独的读写线程处理，使用阻塞IO
+ * 4.默认超过半数机器同意时，则选举成功，修改自身状态为LEADING或FOLLOWING
+ * 5.Obserer机器不参与选举
+ *
  * Implementation of leader election using TCP. It uses an object of the class
  * QuorumCnxManager to manage connections. Otherwise, the algorithm is push-based
  * as with the other UDP implementations.
