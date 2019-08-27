@@ -80,6 +80,9 @@ public class ZKDatabase {
      * 确保明确你照顾所有这些成员。
      */
     protected DataTree dataTree;
+    /**
+     * 会话超时时间记录器
+     */
     protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
     protected FileTxnSnapLog snapLog;
     protected long minCommittedLog, maxCommittedLog;
@@ -247,6 +250,9 @@ public class ZKDatabase {
         return sessionsWithTimeouts;
     }
 
+    /**
+     * PlayBackListener监听器主要用来接收事务应用过程中的回调
+     */
     private final PlayBackListener commitProposalPlaybackListener = new PlayBackListener() {
         public void onTxnLoaded(TxnHeader hdr, Record txn){
             addCommittedProposal(hdr, txn);
@@ -254,7 +260,7 @@ public class ZKDatabase {
     };
 
     /**
-     * 恢复dataTree的主要方法
+     * 恢复dataTree的核心方法
      *
      * load the database from the disk onto memory and also add
      * the transactions to the committedlog in memory.
@@ -285,7 +291,7 @@ public class ZKDatabase {
     }
 
     /**
-     * dataTree 加载完成的回调函数
+     * 把事务包装成请求并执行#addCommittedProposal()
      * @param hdr
      * @param txn
      */

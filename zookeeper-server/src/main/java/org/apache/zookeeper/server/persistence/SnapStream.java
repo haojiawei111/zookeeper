@@ -156,8 +156,9 @@ public class SnapStream {
     }
 
     /**
-     * Verify the integrity of the seal, only CheckedInputStream will verify
-     * the checkSum of the content.
+     * Verify the integrity of the seal, only CheckedInputStream will verify the checkSum of the content.
+     *
+     * 验证反序列化的完整性，只有CheckedInputStream会验证checkSum的内容。
      *
      */
     static void checkSealIntegrity(CheckedInputStream is, InputArchive ia)

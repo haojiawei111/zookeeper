@@ -187,6 +187,7 @@ public class FileTxnSnapLogTest {
         Assert.fail("Expected exception from FileTxnSnapLog");
     }
 
+    // 尝试自动创建数据库
     private void attemptAutoCreateDB(File dataDir, File snapDir, Map<Long, Integer> sessions,
                                      String autoCreateValue, long expectedValue) throws IOException {
         sessions.clear();

@@ -972,7 +972,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             zkDb.loadDataBase();
 
             // load the epochs
+            // epoch是ZooKeeper中一个非常特别的变量，其字面意思是“时代”，在ZooKeeper中，epoch标识了当前Leader周期。
+            // 每次选举产生一个新的Leader服务器之后，就会生成一个新的cpoch。
+            // 在运行期间集群中机器互相通信的过程中，都会带上这个epoch一确保彼此在同一个Leader周期内。
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
+            // 在完成数据加载后，ZooKeeper会确定ZXID中解析出事务处理的Leader周期：epochOfZxid。
+            // 同时会从磁盘的currentEpoch和acceptedEpoch文件中对去出上次记录的最新的epoch值，进行校验。
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
                 currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
@@ -987,7 +992,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             	writeLongToFile(CURRENT_EPOCH_FILENAME, currentEpoch);
             }
             if (epochOfZxid > currentEpoch) {
-                throw new IOException("The current epoch, " + ZxidUtils.zxidToString(currentEpoch) + ", is older than the last zxid, " + lastProcessedZxid);
+                throw new IOException("The current epoch当前的时代 , " + ZxidUtils.zxidToString(currentEpoch) + ", is older than the last zxid, " + lastProcessedZxid);
             }
             try {
                 acceptedEpoch = readLongFromFile(ACCEPTED_EPOCH_FILENAME);

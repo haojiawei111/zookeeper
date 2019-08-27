@@ -1360,11 +1360,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     // entry point for quorum/Learner.java
+    // quorum / Learner.java 的入口点
     public ProcessTxnResult processTxn(TxnHeader hdr, Record txn) {
         return processTxn(null, hdr, txn);
     }
 
-    // entry point for FinalRequestProcessor.java
+    // FinalRequestProcessor.java的入口点
     public ProcessTxnResult processTxn(Request request) {
         return processTxn(request, request.getHdr(), request.getTxn());
     }

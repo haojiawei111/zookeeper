@@ -303,6 +303,8 @@ public class FileTxnSnapLog {
                          hdr.getType() + " error: " + e.getMessage(), e);
                 }
                 // 执行回调函数
+                // 每当有一个事务被应用到内存数据库中，ZooKeeper同时会回调PlayBackListener监听器，
+                // 将这一事务操作记录转换成Proposal，保存到ZKDatabase.committedLog中，以便Follower进行快速同步。
                 listener.onTxnLoaded(hdr, itr.getTxn());
                 if (!itr.next())
                     break;
@@ -346,14 +348,14 @@ public class FileTxnSnapLog {
      * process the transaction on the datatree
      *
      * 处理数据树上的事务
+     * 主要是回放事务 恢复使用
      *
      * @param hdr the hdr of the transaction
      * @param dt the datatree to apply transaction to
      * @param sessions the sessions to be restored
      * @param txn the transaction to be applied
      */
-    public void processTransaction(TxnHeader hdr,DataTree dt,
-            Map<Long, Integer> sessions, Record txn)
+    public void processTransaction(TxnHeader hdr,DataTree dt, Map<Long, Integer> sessions, Record txn)
         throws KeeperException.NoNodeException {
         ProcessTxnResult rc;
         switch (hdr.getType()) {
