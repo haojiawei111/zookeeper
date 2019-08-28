@@ -930,7 +930,7 @@ public class FastLeaderElection implements Election {
 
     /**
      * Returns the initial vote value of server identifier.
-     *
+     *  即是获取选谁，id就是myid里指定的那个数字，所以说一定要唯一
      * @return long
      */
     private long getInitId(){
@@ -985,7 +985,8 @@ public class FastLeaderElection implements Election {
      * Starts a new round of leader election. Whenever our QuorumPeer
      * changes its state to LOOKING, this method is invoked, and it
      * sends notifications to all other peers.
-     * 开始新一轮领导人选举。每当我们的QuorumPeer 将其状态更改为LOOKING时，都会调用此方法，并且会向所有其他对等方发送通知。
+     * 开始新一轮领导人选举。
+     * 每当我们的QuorumPeer 将其状态更改为LOOKING时，都会调用此方法，并且会向所有其他对等方发送通知。
      */
     public Vote lookForLeader() throws InterruptedException {
         try {
@@ -1008,10 +1009,12 @@ public class FastLeaderElection implements Election {
             int notTimeout = minNotificationInterval;
 
             synchronized(this){
+                // TODO：逻辑时钟加一
                 //logicalclock代表该当前机器的逻辑时钟（初始为0），每次进行一次leader选举，就会加一
                 logicalclock.incrementAndGet();
-                //初始化选票，投给自己，getInitLastLoggedZxid得到的是该服务器已经处理的事务的
-                //最大zxid，getPeerEpoch得到的是该服务器的选举轮次
+                //初始化选票，投给自己，
+                // getInitLastLoggedZxid得到的是该服务器已经处理的事务的最大zxid
+                // getPeerEpoch得到的是该服务器的选举轮次
                 updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());
             }
 

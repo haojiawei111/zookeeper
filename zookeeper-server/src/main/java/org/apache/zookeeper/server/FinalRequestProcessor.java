@@ -99,7 +99,8 @@ import java.util.Set;
 public class FinalRequestProcessor implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(FinalRequestProcessor.class);
 
-    // ZooKeeper服务器   核心属性为zks，表示Zookeeper服务器，可以通过zks访问到Zookeeper内存数据库。
+    // ZooKeeper服务器   核心属性为zks，表示Zookeeper服务器，
+    // TODO:可以通过zks访问到Zookeeper内存数据库。
     ZooKeeperServer zks;
 
     public FinalRequestProcessor(ZooKeeperServer zks) {
@@ -119,8 +120,10 @@ public class FinalRequestProcessor implements RequestProcessor {
             ZooTrace.logRequest(LOG, traceMask, 'E', request, "");
         }
         ProcessTxnResult rc = null;
+        // 从修改记录列表中循环提交修改，包括处理事务
         synchronized (zks.outstandingChanges) {// 同步块
-            // Need to process local session requests需要处理本地会话请求
+            // Need to process local session requests
+            // 需要处理本地会话请求,处理请求
             rc = zks.processTxn(request);
 
             // request.hdr is set for write requests, which are the only ones
@@ -128,12 +131,14 @@ public class FinalRequestProcessor implements RequestProcessor {
             if (request.getHdr() != null) {
                 TxnHeader hdr = request.getHdr();
                 long zxid = hdr.getZxid();
-                while (!zks.outstandingChanges.isEmpty()
-                       && zks.outstandingChanges.peek().zxid <= zxid) {// outstandingChanges不为空且首个元素的zxid小于请求的zxid
+                // 从修改记录列表中循环提交修改，包括处理事务
+                while (!zks.outstandingChanges.isEmpty() && zks.outstandingChanges.peek().zxid <= zxid) {
+                    // outstandingChanges不为空且首个元素的zxid小于请求的zxid
                      // 移除首个元素
                     ChangeRecord cr = zks.outstandingChanges.remove();
                     ServerMetrics.getMetrics().OUTSTANDING_CHANGES_REMOVED.add(1);
-                    if (cr.zxid < zxid) {// 若Record的zxid小于请求的zxid
+                    if (cr.zxid < zxid) {
+                        // 若Record的zxid小于请求的zxid
                         LOG.warn("Zxid outstanding " + cr.zxid
                                  + " is less than current " + zxid);
                     }
@@ -144,8 +149,11 @@ public class FinalRequestProcessor implements RequestProcessor {
             }
 
             // do not add non quorum packets to the queue.
+            // 判断是否为事务性请求则是通过调用isQuorum函数，会改变服务器状态的（事务性）请求就是Quorum。
+            // 之后调用addCommittedProposal函数将请求添加至ZKDatabase的committedLog结构中，方便follower快速同步。
             // 只将quorum包（事务性请求）添加进队列
             if (request.isQuorum()) {
+                // 添加提交历史
                 zks.getZKDatabase().addCommittedProposal(request);
             }
         }
@@ -185,7 +193,7 @@ public class FinalRequestProcessor implements RequestProcessor {
         }
 
         ServerCnxn cnxn = request.cnxn;
-
+        // 最后的事务ID
         long lastZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
 
         String lastOp = "NA";
@@ -221,9 +229,11 @@ public class FinalRequestProcessor implements RequestProcessor {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("{}",request);
             }
+
             switch (request.type) {
             case OpCode.ping: {// PING请求   这里处理心跳
                 lastOp = "PING";
+                // 更新响应的状态
                 updateStats(request, lastOp, lastZxid);// 更新状态
                 // 设置响应
                 cnxn.sendResponse(new ReplyHeader(-2, lastZxid, 0), null, "response");

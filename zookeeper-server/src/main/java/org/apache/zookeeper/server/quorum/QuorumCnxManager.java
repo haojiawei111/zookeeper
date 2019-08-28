@@ -664,6 +664,8 @@ public class QuorumCnxManager {
         /*
          * If sending message to myself, then simply enqueue it (loopback).
          */
+        // 前面发送投票信息的时候是向集群所有节点发送，所以当然也包括自己这个节点，所以QuorumCnxManager的发送逻辑里会判断，
+        // 如果这个要发送的投票信息是发送给自己的，则不发送了，直接进入接收队列。
         //如果接受者是自己，直接放置到接收队列
         if (this.mySid == sid) {
              b.position(0);
@@ -676,6 +678,7 @@ public class QuorumCnxManager {
              /*
               * Start a new connection if doesn't have one already.
               */
+            //这个SEND_CAPACITY的大小是1，所以如果之前已经有一个还在等待发送，则会把之前的一个删除掉，发送新的
              ArrayBlockingQueue<ByteBuffer> bq = new ArrayBlockingQueue<ByteBuffer>(
                 SEND_CAPACITY);
              ArrayBlockingQueue<ByteBuffer> oldq = queueSendMap.putIfAbsent(sid, bq);
@@ -684,7 +687,7 @@ public class QuorumCnxManager {
              } else {
                  addToSendQueue(bq, b);
              }
-            //连接申请
+            //连接申请 这里是真正的发送逻辑了
              connectOne(sid);
 
         }
@@ -1180,8 +1183,7 @@ public class QuorumCnxManager {
 
                     ByteBuffer b = null;
                     try {
-                        ArrayBlockingQueue<ByteBuffer> bq = queueSendMap
-                                .get(sid);
+                        ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);
                         if (bq != null) {
                             b = pollSendQueue(bq, 1000, TimeUnit.MILLISECONDS);//从发送队列里面取出消息
                         } else {//队列没有记录在map中
