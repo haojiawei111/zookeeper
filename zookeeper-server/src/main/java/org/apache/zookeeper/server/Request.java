@@ -143,6 +143,7 @@ public class Request {
 
     /**
      * is the packet type a valid packet in zookeeper
+     * 数据包类型是zookeeper中的有效数据包
      *
      * @param type
      *                the type of the packet

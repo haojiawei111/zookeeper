@@ -108,6 +108,10 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
          *
          * However, this may degrade performance as it has to write to disk
          * and do periodic snapshot which may double the memory requirements
+         *
+         * 观察者应该写入磁盘，这样它就不会向领导者请求太旧的txn，这可能导致获得整个快照。
+         *
+         * 但是，这可能会降低性能，因为它必须写入磁盘并执行定期快照，这可能会使内存需求翻倍
          */
         if (syncRequestProcessorEnabled) {
             syncProcessor = new SyncRequestProcessor(this, null);
@@ -131,7 +135,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     @Override
     public String getState() {
         return "observer";
-    };    
+    }
 
     @Override
     public synchronized void shutdown() {

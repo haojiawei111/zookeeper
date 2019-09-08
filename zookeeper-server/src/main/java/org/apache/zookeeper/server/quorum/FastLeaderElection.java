@@ -1062,8 +1062,7 @@ public class FastLeaderElection implements Election {
                     notTimeout = (tmpTimeOut < maxNotificationInterval?
                             tmpTimeOut : maxNotificationInterval);
                     LOG.info("Notification time out: " + notTimeout);
-                }
-                else if (validVoter(n.sid) && validVoter(n.leader)) {
+                }else if (validVoter(n.sid) && validVoter(n.leader)) {
                     //否则处理选票
                     /*
                      * Only proceed if the vote comes from a replica in the current or next

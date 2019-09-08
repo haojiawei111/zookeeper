@@ -37,6 +37,7 @@ import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
  * <p>
  * The very first processor in the chain of request processors is a
  * ReadOnlyRequestProcessor which drops state-changing requests.
+ * 请求处理器链中的第一个处理器是 ReadOnlyRequestProcessor，它丢弃状态改变请求（事务请求）。
  */
 public class ReadOnlyZooKeeperServer extends ZooKeeperServer {
 

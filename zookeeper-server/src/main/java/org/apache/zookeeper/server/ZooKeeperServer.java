@@ -735,10 +735,11 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         jmxDataTreeBean = null;
     }
 
+    // 记录在请求处理链中的请求数
     public void incInProcess() {
         requestsInProcess.incrementAndGet();
     }
-
+    // 记录在请求处理链中的请求数
     public void decInProcess() {
         requestsInProcess.decrementAndGet();
     }
@@ -917,6 +918,10 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     protected void setLocalSessionFlag(Request si) {
     }
 
+    /**
+     * 提交请求到请求处理链
+     * @param si
+     */
     public void submitRequest(Request si) {
         if (firstProcessor == null) {
             synchronized (this) {
@@ -1133,6 +1138,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return connThrottle.getDropChance();
     }
 
+    // 服务器端处理连接请求
     public void processConnectRequest(ServerCnxn cnxn, ByteBuffer incomingBuffer)
         throws IOException, ClientCnxnLimitException {
 
@@ -1231,8 +1237,16 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return false;
     }
 
+    /**
+     *
+     * 处理客户端发送过来的报文
+     *
+     * @param cnxn
+     * @param incomingBuffer
+     * @throws IOException
+     */
     public void processPacket(ServerCnxn cnxn, ByteBuffer incomingBuffer) throws IOException {
-        // We have the request, now process and setup for next
+        // 我们有请求，现在为下一步处理和设置
         InputStream bais = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bia = BinaryInputArchive.getArchive(bais);
         RequestHeader h = new RequestHeader();
@@ -1247,6 +1261,10 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         //
         // It's fine if the IOException thrown before we decrease the count
         // in cnxn, since it will close the cnxn anyway.
+        //
+        // 首先需要增加未完成的请求计数，否则可能存在一个竞争条件，它在处理请求后启用recv，然后在检查限制时禁用。
+        // 请注意，我们实际上是在此请求之前检查全局未完成请求。
+        // 如果在我们减少cnxn中的计数之前抛出IOException就没问题，因为无论如何它都会关闭cnxn。
         cnxn.incrOutstandingAndCheckThrottle(h);
 
         // Through the magic of byte buffers, txn will not be
@@ -1304,8 +1322,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             Request si = new Request(cnxn, cnxn.getSessionId(), h.getXid(),
               h.getType(), incomingBuffer, cnxn.getAuthInfo());
             si.setOwner(ServerCnxn.me);
-            // Always treat packet from the client as a possible
-            // local request.
+            // Always treat packet from the client as a possible local request.
+            // 始终将来自客户端的数据包视为可能的本地请求。
             setLocalSessionFlag(si);
             // 调用请求处理链处理请求
             submitRequest(si);

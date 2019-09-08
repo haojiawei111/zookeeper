@@ -237,6 +237,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
     public void setStale() {
         stale = true;
     }
+
     // 接收的packet
     protected void packetReceived(long bytes) {
         incrPacketsReceived();
@@ -246,7 +247,8 @@ public abstract class ServerCnxn implements Stats, Watcher {
         }
         ServerMetrics.getMetrics().BYTES_RECEIVED_COUNT.add(bytes);
     }
-    // 发送的packet
+
+    // 发送的packet，这个是服务器听不发送调用的
     protected void packetSent() {
         incrPacketsSent();
         ServerStats serverStats = serverStats();

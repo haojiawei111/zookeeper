@@ -369,6 +369,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
         private final int id; // SelectorThread 编号
         //连接队列 AcceptThread线程会把它建立的连接放到这个队列中去
         private final Queue<SocketChannel> acceptedQueue;
+
         // 在这个队列中的SelectionKey会改变在Selector上注册的感兴趣事件
         private final Queue<SelectionKey> updateQueue;
 
@@ -397,6 +398,8 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
          * selector thread modifies interest ops, because interest ops
          * reads/sets are potentially blocking operations if other select
          * operations are happening.
+         * 将兴趣更新请求放入队列，以便只有选择器线程修改兴趣操作，
+         * 因为如果发生其他选择操作，兴趣操作读取/设置可能会阻止操作。
          */
         public boolean addInterestOpsUpdateRequest(SelectionKey sk) {
             if (stopped || !updateQueue.offer(sk)) {
@@ -642,6 +645,8 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
      * shared by connections.
      * 我们使用此缓冲区来执行高效的套接字I/O.
      * 因为I/O由工作线程（或直接选择器线程，如果没有创建工作者线程池）处理，我们可以创建一组固定的连接来共享。
+     *
+     * 由于I/O由worker thread执行,因此将直接内存设置为ThreadLocal的. 各连接可以在共享直接内存的同时无需担心并发问题.
      */
     private static final ThreadLocal<ByteBuffer> directBuffer =
         new ThreadLocal<ByteBuffer>() {

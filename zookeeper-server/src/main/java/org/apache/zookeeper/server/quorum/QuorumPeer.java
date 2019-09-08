@@ -1258,23 +1258,24 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                     LOG.info("LOOKING");
                     ServerMetrics.getMetrics().LOOKING_COUNT.add(1);
 
-                    if (Boolean.getBoolean("readonlymode.enabled")) {
+                    if (Boolean.getBoolean("readonlymode.enabled")) {// 开启的只读模式
                         LOG.info("Attempting to start ReadOnlyZooKeeperServer试图启动ReadOnlyZooKeeperServer");
 
                         // Create read-only server but don't start it immediately
                         final ReadOnlyZooKeeperServer roZk =
                             new ReadOnlyZooKeeperServer(logFactory, this, this.zkDb);
     
-                        // Instead of starting roZk immediately, wait some grace
-                        // period before we decide we're partitioned.
+                        // Instead of starting roZk immediately, wait some grace period before we decide we're partitioned.
+                        // 不要立即启动roZk，在我们决定分区之前等待一段宽限期。
                         //
                         // Thread is used here because otherwise it would require
                         // changes in each of election strategy classes which is
                         // unnecessary code coupling.
+                        // 这里使用线程，因为否则它将需要在每个选举策略类中进行更改，这是不必要的代码耦合。
                         Thread roZkMgr = new Thread() {
                             public void run() {
                                 try {
-                                    // lower-bound grace period to 2 secs
+                                    // lower-bound grace period to 2 secs下限宽限期为2秒
                                     sleep(Math.max(2000, tickTime));
                                     if (ServerState.LOOKING.equals(getPeerState())) {
                                         roZk.startup();
@@ -1299,8 +1300,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                             LOG.warn("Unexpected exception", e);
                             setPeerState(ServerState.LOOKING);
                         } finally {
-                            // If the thread is in the the grace period, interrupt
-                            // to come out of waiting.
+                            // If the thread is in the the grace period, interrupt to come out of waiting.
                             roZkMgr.interrupt();
                             roZk.shutdown();
                         }

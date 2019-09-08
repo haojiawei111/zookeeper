@@ -73,8 +73,7 @@ public class NIOServerCnxn extends ServerCnxn {
     // 赋值incomingBuffer
     private ByteBuffer incomingBuffer = lenBuffer;
     // 缓冲队列
-    private final Queue<ByteBuffer> outgoingBuffers =
-        new LinkedBlockingQueue<ByteBuffer>();
+    private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<ByteBuffer>();
     // 会话超时时间
     private int sessionTimeout;
 
@@ -139,8 +138,8 @@ public class NIOServerCnxn extends ServerCnxn {
     }
 
     /**
-     * sendBuffer pushes a byte buffer onto the outgoing buffer queue for
-     * asynchronous writes.
+     * sendBuffer pushes a byte buffer onto the outgoing buffer queue for asynchronous writes.
+     * sendBuffer将字节缓冲区推送到传出缓冲区队列以进行异步发送。
      */
     public void sendBuffer(ByteBuffer... buffers) {
         if (LOG.isTraceEnabled()) {
@@ -156,9 +155,19 @@ public class NIOServerCnxn extends ServerCnxn {
         requestInterestOpsUpdate();
     }
 
-    /** Read the request payload (everything following the length prefix) 读取请求有效负载（长度前缀后面的所有内容）*/
+    /**
+     * 有两种情况会调用此方法:
+     * 1.根据lengthBuffer的值为incomingBuffer分配空间后,此时尚未将数据从socketChannel读取至incomingBuffer中
+     * 2.已经将数据从socketChannel中读取至incomingBuffer,且读取完毕
+     * <p>
+     * Read the request payload (everything following the length prefix) 读取请求有效负载（长度前缀后面的所有内容）
+     */
     private void readPayload() throws IOException, InterruptedException, ClientCnxnLimitException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
+            //对应情况1,此时刚为incomingBuffer分配空间,incomingBuffer为空,进行一次数据读取
+            //(1)若将incomingBuffer读满,则直接进行处理;
+            //(2)若未将incomingBuffer读满,则说明此次发送的数据不能构成一个完整的请求,则等待下一次数据到达后调用doIo()时再次将数据
+            //从socketChannel读取至incomingBuffer
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
             if (rc < 0) {
                 ServerMetrics.getMetrics().CONNECTION_DROP_COUNT.add(1);
@@ -170,13 +179,18 @@ public class NIOServerCnxn extends ServerCnxn {
         }
 
         if (incomingBuffer.remaining() == 0) { // have we read length bytes?
+            //不管是情况1还是情况2,此时incomingBuffer已读满,其中内容必是一个request,处理该request
             incomingBuffer.flip();
+            //更新统计值
             packetReceived(4 + incomingBuffer.remaining());
             if (!initialized) {
+                //处理连接请求
                 readConnectRequest();
             } else {
+                //处理普通请求
                 readRequest();
             }
+            //请求处理结束,重置lenBuffer和incomingBuffer
             lenBuffer.clear();
             incomingBuffer = lenBuffer;
         }
@@ -187,6 +201,8 @@ public class NIOServerCnxn extends ServerCnxn {
      * not. A connection is marked as not ready for selection while it is
      * processing an IO request. The flag is used to gatekeep pushing interest
      * op updates onto the selector.
+     * 此布尔值跟踪连接是否已准备好进行选择。
+     * 在处理IO请求时，连接被标记为未准备好进行选择。该标志用于将兴趣操作更新推送到选择器上。
      */
     private final AtomicBoolean selectable = new AtomicBoolean(true);
 
@@ -208,25 +224,38 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
 
+    /**
+     * 当{@link #sock}可写时调用该方法
+     *
+     * @param  k {@link #sock}关联的SelectionKey
+     * @throws IOException
+     * @throws CloseRequestException
+     */
     void handleWrite(SelectionKey k) throws IOException, CloseRequestException {
         if (outgoingBuffers.isEmpty()) {
             return;
         }
 
         /*
+         * 使用其执行高效的socket I/O,
+         * <p>
          * This is going to reset the buffer position to 0 and the
          * limit to the size of the buffer, so that we can fill it
          * with data from the non-direct buffers that we need to
          * send.
          */
+        /*
+         * 尝试获取直接内存
+         */
         ByteBuffer directBuffer = NIOServerCnxnFactory.getDirectBuffer();
         if (directBuffer == null) {
+            //不使用直接内存
             ByteBuffer[] bufferList = new ByteBuffer[outgoingBuffers.size()];
             // Use gathered write call. This updates the positions of the
             // byte buffers to reflect the bytes that were written out.
             sock.write(outgoingBuffers.toArray(bufferList));
 
-            // Remove the buffers that we have sent
+            // Remove the buffers that we have sent 删除我们发送的缓冲区
             ByteBuffer bb;
             while ((bb = outgoingBuffers.peek()) != null) {
                 if (bb == ServerCnxnFactory.closeConn) {
@@ -241,6 +270,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 outgoingBuffers.remove();
             }
          } else {
+            //使用直接内存
             directBuffer.clear();
 
             for (ByteBuffer b : outgoingBuffers) {
@@ -250,9 +280,19 @@ public class NIOServerCnxn extends ServerCnxn {
                      * small to hold everything, nothing will be copied,
                      * so we've got to slice the buffer if it's too big.
                      */
+                    /*
+                     * 若directBuffer的剩余可写空间不足以容纳b的所有数据,则修改b的limit为directBuffer的剩余可写空间.
+                     * 这样下面的复制代码刚好将directBuffer的可写空间写满
+                     */
                     b = (ByteBuffer) b.slice().limit(
                             directBuffer.remaining());
                 }
+                /*
+                 * put()会修改b和directBuffer的position值,但是我们不能修改b的position值,
+                 * 因为下文需要position的值将已发送的数据移出outgoingBuffers,因此在复制结束后重置position值.
+                 *
+                 */
+
                 /*
                  * put() is going to modify the positions of both
                  * buffers, put we don't want to change the position of
@@ -261,6 +301,7 @@ public class NIOServerCnxn extends ServerCnxn {
                  * copy
                  */
                 int p = b.position();
+                //将b中的数据复制到directBuffer中
                 directBuffer.put(b);
                 b.position(p);
                 if (directBuffer.remaining() == 0) {
@@ -272,12 +313,13 @@ public class NIOServerCnxn extends ServerCnxn {
              * 0. This sets us up for the write.
              */
             directBuffer.flip();
-
+            //返回发送的字节数,下文据此移除已发送的数据
             int sent = sock.write(directBuffer);
 
             ByteBuffer bb;
 
             // Remove the buffers that we have sent
+            // 将已发送的buffers从outgoingBuffers中移除
             while ((bb = outgoingBuffers.peek()) != null) {
                 if (bb == ServerCnxnFactory.closeConn) {
                     throw new CloseRequestException("close requested");
@@ -290,10 +332,12 @@ public class NIOServerCnxn extends ServerCnxn {
                      * We only partially sent this buffer, so we update
                      * the position and exit the loop.
                      */
+                    // 只发送了此Buffer的部分数据,因此修改position的值并退出循环
                     bb.position(bb.position() + sent);
                     break;
                 }
                 /* We've sent the whole buffer, so drop the buffer */
+                //该buffer的数据已经全部发送,将buffer从outgoingBuffers中移除
                 sent -= bb.remaining();
                 outgoingBuffers.remove();
             }
@@ -310,6 +354,7 @@ public class NIOServerCnxn extends ServerCnxn {
     /**
      * Handles read/write IO on connection.
      * 处理连接的读/写IO。
+     * 当SocketChannel上有数据可读时,worker thread调用NIOServerCnxn.doIO()进行读操作
      */
     void doIO(SelectionKey k) throws InterruptedException {
         try {
@@ -320,6 +365,12 @@ public class NIOServerCnxn extends ServerCnxn {
                 return;
             }
             if (k.isReadable()) {
+                // 处理读操作的流程
+                // 1.最开始incomingBuffer就是lenBuffer,容量为4.第一次读取4个字节,即此次请求报文的长度
+                // 2.根据请求报文的长度分配incomingBuffer的大小
+                // 3.将读到的字节存放在incomingBuffer中,直至读满
+                //         (由于第2步中为incomingBuffer分配的长度刚好是报文的长度,此时incomingBuffer中刚好时一个报文)
+                // 4.处理报文
                 int rc = sock.read(incomingBuffer);
                 if (rc < 0) {
                     ServerMetrics.getMetrics().CONNECTION_DROP_COUNT.add(1);
@@ -328,19 +379,33 @@ public class NIOServerCnxn extends ServerCnxn {
                             + Long.toHexString(sessionId)
                             + ", likely client has closed socket");
                 }
+                /*
+                只有incomingBuffer.remaining() == 0,才会进行下一步的处理,否则一直读取数据直到incomingBuffer读满,此时有两种可能:
+                1.incomingBuffer就是lenBuffer,此时incomingBuffer的内容是此次请求报文的长度.
+                根据lenBuffer为incomingBuffer分配空间后调用readPayload().
+                在readPayload()中会立马进行一次数据读取,(1)若可以将incomingBuffer读满,则incomingBuffer中就是一个完整的请求,处理该请求;
+                (2)若不能将incomingBuffer读满,说明出现了拆包问题,此时不能构造一个完整的请求,只能等待客户端继续发送数据,等到下次socketChannel可读时,继续将数据读取到incomingBuffer中
+                2.incomingBuffer不是lenBuffer,说明上次读取时出现了拆包问题,incomingBuffer中只有一个请求的部分数据.
+                而这次读取的数据加上上次读取的数据凑成了一个完整的请求,调用readPayload()
+                */
+
                 // return limit - position;返回limit和position之间相对位置差
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
                     if (incomingBuffer == lenBuffer) { // start of next request 开始下一个请求
+                        //解析上文中读取的报文总长度,同时为"incomingBuffer"分配len的空间供读取全部报文
                         incomingBuffer.flip();
+                        //为incomeingBuffer分配空间时还包括了判断是否是"4字命令"的逻辑
                         isPayload = readLength(k);
                         incomingBuffer.clear();
                     } else {
                         // continuation
+                        //2.incomingBuffer不是lenBuffer,此时incomingBuffer的内容是payload
                         isPayload = true;
                     }
 
                     if (isPayload) { // not the case for 4letterword
+                        //处理报文
                         readPayload();
                     }
                     else {
@@ -477,12 +542,13 @@ public class NIOServerCnxn extends ServerCnxn {
             checkFlush(false);
         }
     }
-    /** Return if four letter word found and responded to, otw false **/
+    /** Return if four letter word found and responded to, otw false 如果发现并回复了四个字母的单词，则返回，otw false **/
     private boolean checkFourLetterWord(final SelectionKey k, final int len)
     throws IOException
     {
         // We take advantage of the limited size of the length to look
         // for cmds. They are all 4-bytes which fits inside of an int
+        // 我们利用有限的长度来寻找cmds。它们都是4字节，适合int
         if (!FourLetterCommands.isKnown(len)) {
             return false;
         }
@@ -548,7 +614,7 @@ public class NIOServerCnxn extends ServerCnxn {
      * @throws IOException if buffer size exceeds maxBuffer size
      */
     private boolean readLength(SelectionKey k) throws IOException {
-        // Read the length, now get the buffer
+        // Read the length, now get the buffer 读取长度，现在获取缓冲区
         int len = lenBuffer.getInt();
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;

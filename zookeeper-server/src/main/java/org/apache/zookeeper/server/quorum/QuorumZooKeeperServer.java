@@ -146,6 +146,7 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
         case OpCode.createSession:
             if (self.areLocalSessionsEnabled()) {
                 // All new sessions local by default.
+                // 默认情况下所有新会话都是本地
                 si.setLocalSession(true);
             }
             break;
