@@ -24,6 +24,12 @@ package org.apache.zookeeper;
  * for quota
  * 这个类管理配额，还有许多其他的配额
  *  quota机制支持节点个数（znode）和空间大小（字节数）。
+ *
+ *  Quotas
+ * 主要完成配额目录的定义
+ *     限制信息包含对某个路径的要求大小(count或者bytes)
+ *     状态信息包含对某个路径的实际大小(count或者bytes)
+ * 以及提供path转换到对应的限制path和状态path的方法
  */
 public class Quotas {
 

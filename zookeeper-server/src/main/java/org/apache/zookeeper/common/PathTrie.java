@@ -28,6 +28,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 字典树，又称为单词查找树
+ * PathTrie
+ *   字典树完成配额目录的增删查
+ *   将拥有对应配额属性的节点设置标记属性property
+ *   在zk中的目录结构为/zookeeper/quota/xxx(可以有多级目录)/zookeeper_limits
+ *
  *
  * a class that implements prefix matching for 
  * components of a filesystem path. the trie

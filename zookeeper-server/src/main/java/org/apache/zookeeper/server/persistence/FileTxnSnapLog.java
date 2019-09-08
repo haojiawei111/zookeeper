@@ -222,7 +222,7 @@ public class FileTxnSnapLog {
      * @throws IOException
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions,PlayBackListener listener) throws IOException {
-        //取最近的快照进行恢复
+        //取最近的快照 反序列化dt和sessions
         long deserializeResult = snapLog.deserialize(dt, sessions);
         // 事务日志对象
         FileTxnLog txnLog = new FileTxnLog(dataDir);
@@ -279,6 +279,7 @@ public class FileTxnSnapLog {
                                      PlayBackListener listener) throws IOException {
         // 依据dt最后的事务ID从txnLog中创建事务日志的迭代器
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
+        // 目前快照中最大的zxid
         long highestZxid = dt.lastProcessedZxid;
         TxnHeader hdr;
         try {
@@ -290,6 +291,7 @@ public class FileTxnSnapLog {
                     //empty logs 空日志
                     return dt.lastProcessedZxid;
                 }
+                //如果出现了事务迭代器的zxid比当前最大的zxid小的话，抛异常(就是snapshot是落后于txn的zxid的)
                 if (hdr.getZxid() < highestZxid && highestZxid != 0) {
                     LOG.error("{}(highestZxid) > {}(next log) for type {}",
                             highestZxid, hdr.getZxid(), hdr.getType());
@@ -297,7 +299,7 @@ public class FileTxnSnapLog {
                     highestZxid = hdr.getZxid();
                 }
                 try {
-                    // 回放事务日志
+                    // 回放事务日志 在dt上处理事务
                     processTransaction(hdr,dt,sessions, itr.getTxn());
                 } catch(KeeperException.NoNodeException e) {
                    throw new IOException("Failed to process transaction type: " +
@@ -315,6 +317,7 @@ public class FileTxnSnapLog {
                 itr.close();
             }
         }
+        //返回最高的zxid
         return highestZxid;
     }
 
@@ -356,11 +359,16 @@ public class FileTxnSnapLog {
      * @param sessions the sessions to be restored
      * @param txn the transaction to be applied
      */
+    /*
+    根据事务日志来处理事务，更新dataTree，
+    主要就是sessions这个map的维护，再调用dt.processTxn(hdr, txn);
+     */
     public void processTransaction(TxnHeader hdr,DataTree dt, Map<Long, Integer> sessions, Record txn)
         throws KeeperException.NoNodeException {
         ProcessTxnResult rc;
         switch (hdr.getType()) {
         case OpCode.createSession:
+            //如果是创建session，添加到sessions这个map里面去
             sessions.put(hdr.getClientId(),
                     ((CreateSessionTxn) txn).getTimeOut());
             if (LOG.isTraceEnabled()) {
@@ -375,15 +383,18 @@ public class FileTxnSnapLog {
             rc = dt.processTxn(hdr, txn);
             break;
         case OpCode.closeSession:
+            //如果是关闭session，从sessions这个map里面删除
             sessions.remove(hdr.getClientId());
             if (LOG.isTraceEnabled()) {
                 ZooTrace.logTraceMessage(LOG,ZooTrace.SESSION_TRACE_MASK,
                         "playLog --- close session in log: 0x"
                                 + Long.toHexString(hdr.getClientId()));
             }
+            //用dataTree处理事务
             rc = dt.processTxn(hdr, txn);
             break;
         default:
+            //用dataTree处理事务
             rc = dt.processTxn(hdr, txn);
         }
 
@@ -410,6 +421,8 @@ public class FileTxnSnapLog {
     }
 
     /**
+     * todo:save函数中，用的是lastZxid，也就是一个snap文件的命名是它记录的最后一个zxid，不是第一个
+     *
      * save the datatree and the sessions into a snapshot
      * @param dataTree the datatree to be serialized onto disk
      * @param sessionsWithTimeouts the session timeouts to be
@@ -417,11 +430,13 @@ public class FileTxnSnapLog {
      * @param syncSnap sync the snapshot immediately after write
      * @throws IOException
      */
+    //将sessions和datatree保存至snapshot文件，是序列化的过程
     public void save(DataTree dataTree,
                      ConcurrentHashMap<Long, Integer> sessionsWithTimeouts,
                      boolean syncSnap)
         throws IOException {
         long lastZxid = dataTree.lastProcessedZxid;
+        //按照lastZxid来命名，也就是当前最大的zxid
         File snapshotFile = new File(snapDir, Util.makeSnapshotName(lastZxid));
         LOG.info("Snapshotting: 0x{} to {}", Long.toHexString(lastZxid),
                 snapshotFile);
@@ -454,7 +469,7 @@ public class FileTxnSnapLog {
     /**
      * truncate the transaction logs the zxid
      * specified
-     * 截断指定的zxid 的事务日志
+     * 截断指定的zxid 后面的所有事务日志
      * @param zxid the zxid to truncate the logs to
      * @return true if able to truncate the log, false if not
      * @throws IOException
@@ -465,7 +480,7 @@ public class FileTxnSnapLog {
 
         // truncate it
         FileTxnLog truncLog = new FileTxnLog(dataDir);
-        boolean truncated = truncLog.truncate(zxid);
+        boolean truncated = truncLog.truncate(zxid);//用FileTxnLog删掉指定zxid后的所有事务日志
         truncLog.close();
 
         // re-open the txnLog and snapLog

@@ -31,13 +31,13 @@ public enum CreateMode {
     /**
      * The znode will not be automatically deleted upon client's disconnect.
      */
-    //永恒节点
+    //永久节点
     PERSISTENT (0, false, false, false, false),
     /**
     * The znode will not be automatically deleted upon client's disconnect,
     * and its name will be appended with a monotonically increasing number.
     */
-    //永恒递增节点
+    //永久递增节点
     PERSISTENT_SEQUENTIAL (2, false, true, false, false),
     /**
      * The znode will be deleted upon the client's disconnect.

@@ -142,6 +142,9 @@ public class DataTree {
     /**
      * the path trie that keeps track of the quota nodes in this datatree
      * 跟踪此数据树中的配额节点的路径trie
+     *
+     * PathTrie,Quotas,StatsTrack这几个类是配合完成zk中某些znode(叶子或目录)的配额限制工作的
+     * ZooKeeper quota机制支持节点个数（znode）和空间大小（字节数）。
      */
     private final PathTrie pTrie = new PathTrie();
 

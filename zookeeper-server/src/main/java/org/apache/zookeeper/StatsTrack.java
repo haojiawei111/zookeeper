@@ -20,6 +20,10 @@ package org.apache.zookeeper;
 
 /**
  * a class that represents the stats associated with quotas
+ * 表示与配额关联的统计信息的类
+ * StatsTrack
+ *   就是记录某个节点实际的count和bytes长度信息
+ *   在zk中的目录结构为/zookeeper/quota/xxx(可以有多级目录)/statNode
  */
 public class StatsTrack {
     private int count;
