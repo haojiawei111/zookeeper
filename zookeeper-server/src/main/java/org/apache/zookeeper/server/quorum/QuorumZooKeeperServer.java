@@ -126,6 +126,7 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
 
     /**
      * Implements the SessionUpgrader interface,
+     * 实现SessionUpgrader接口，
      *
      * @param sessionId
      */
@@ -184,6 +185,7 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
         pwriter.print(new String(self.getQuorumVerifier().toString().getBytes()));
     }
 
+    // 设置服务状态
     @Override
     protected void setState(State state) {
         this.state = state;

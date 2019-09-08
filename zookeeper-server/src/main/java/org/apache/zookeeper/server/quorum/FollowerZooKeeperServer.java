@@ -50,19 +50,21 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     /*
      * Pending sync requests
+     * TODO:待同步请求
      */
     ConcurrentLinkedQueue<Request> pendingSyncs;
 
     /**
-     * @param port
-     * @param dataDir
+     * @param logFactory
+     * @param self
+     * @param zkDb
      * @throws IOException
      */
-    FollowerZooKeeperServer(FileTxnSnapLog logFactory,QuorumPeer self,
-            ZKDatabase zkDb) throws IOException {
+    FollowerZooKeeperServer(FileTxnSnapLog logFactory,QuorumPeer self,ZKDatabase zkDb) throws IOException {
         super(logFactory, self.tickTime, self.minSessionTimeout,
                 self.maxSessionTimeout, self.clientPortListenBacklog,
                 zkDb, self);
+        // 初始化pendingSyncs
         this.pendingSyncs = new ConcurrentLinkedQueue<Request>();
     }
 
@@ -92,13 +94,21 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         syncProcessor.start();
     }
 
+    // TODO: 待处理的事务请求
     LinkedBlockingQueue<Request> pendingTxns = new LinkedBlockingQueue<Request>();
 
+    /**
+     * TODO:该函数将请求进行记录（放入到对应的队列中），等待处理。
+     * @param hdr
+     * @param txn
+     */
     public void logRequest(TxnHeader hdr, Record txn) {
+        // 创建请求
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
-        if ((request.zxid & 0xffffffffL) != 0) {
+        if ((request.zxid & 0xffffffffL) != 0) { // zxid不为0，表示本服务器已经处理过请求
             pendingTxns.add(request);
         }
+        // 使用SyncRequestProcessor处理请求(其会将请求放在队列中，异步进行处理)
         syncProcessor.processRequest(request);
     }
 
@@ -108,34 +118,40 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
      * the pendingTxns queue and hands it to the commitProcessor to commit.
      * @param zxid - must correspond to the head of pendingTxns if it exists
      */
+    // 该函数会提交zxid对应的请求（pendingTxns的队首元素），
+    // 其首先会判断队首请求对应的zxid是否为传入的zxid，然后再进行移除和提交（放在committedRequests队列中）
     public void commit(long zxid) {
-        if (pendingTxns.size() == 0) {
+        if (pendingTxns.size() == 0) {// 没有还在等待处理的事务
             LOG.warn("Committing " + Long.toHexString(zxid)
                     + " without seeing txn");
             return;
         }
+        // 队首元素的zxid
         long firstElementZxid = pendingTxns.element().zxid;
-        if (firstElementZxid != zxid) {
+        if (firstElementZxid != zxid) {// 如果队首元素的zxid不等于需要提交的zxid，则退出程序
             LOG.error("Committing zxid 0x" + Long.toHexString(zxid)
                     + " but next pending txn 0x"
                     + Long.toHexString(firstElementZxid));
             System.exit(ExitCode.UNMATCHED_TXN_COMMIT.getValue());
         }
+        // 从待处理事务请求队列中移除队首请求
         Request request = pendingTxns.remove();
+        // 提交该请求
         commitProcessor.commit(request);
     }
 
     synchronized public void sync(){
-        if(pendingSyncs.size() == 0) {
+        if(pendingSyncs.size() == 0) {// 没有需要同步的请求
             LOG.warn("Not expecting a sync.");
             return;
         }
-
+        // 从待同步队列中移除队首请求
         Request r = pendingSyncs.remove();
         if (r instanceof LearnerSyncRequest) {
             LearnerSyncRequest lsr = (LearnerSyncRequest)r;
             lsr.fh.queuePacket(new QuorumPacket(Leader.SYNC, 0, null, null));
         }
+        // 提交该请求
         commitProcessor.commit(r);
     }
 

@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     private ContainerManager containerManager;  // guarded by sync
 
-
+    // 提交请求处理器
     CommitProcessor commitProcessor;
 
     PrepRequestProcessor prepRequestProcessor;
@@ -128,6 +128,7 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
         return globalOutstandingLimit;
     }
 
+    // 创建会话跟踪器
     @Override
     public void createSessionTracker() {
         sessionTracker = new LeaderSessionTracker(
@@ -151,6 +152,8 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     /**
      * Requests coming from the learner should go directly to
      * PrepRequestProcessor
+     *
+     * 来自 learner 的请求应直接转到 PrepRequestProcessor
      *
      * @param request
      */

@@ -372,22 +372,23 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
          *
          * See ZOOKEEPER-1642 for more detail.
          */
-        if(zkDb.isInitialized()){
+        if(zkDb.isInitialized()){// 内存数据库已被初始化
+            // 设置为最后处理的Zxid
             setZxid(zkDb.getDataTreeLastProcessedZxid());
         }
         else {
             setZxid(zkDb.loadDataBase());
         }
 
-        // Clean up dead sessions
+        // Clean up dead sessions清理死会话
         List<Long> deadSessions = new ArrayList<>();
-        for (Long session : zkDb.getSessions()) {
+        for (Long session : zkDb.getSessions()) { // 遍历所有的会话
             if (zkDb.getSessionWithTimeOuts().get(session) == null) {
                 deadSessions.add(session);
             }
         }
 
-        for (long session : deadSessions) {
+        for (long session : deadSessions) {// 删除过期的会话
             // XXX: Is lastProcessedZxid really the best thing to use?
             killSession(session, zkDb.getDataTreeLastProcessedZxid());
         }
@@ -611,7 +612,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         sessionTracker = new SessionTrackerImpl(this, zkDb.getSessionWithTimeOuts(),
                 tickTime, createSessionTrackerServerId, getZooKeeperServerListener());
     }
-
+    // 启动会话跟踪模块
     protected void startSessionTracker() {
         ((SessionTrackerImpl)sessionTracker).start();
     }
@@ -918,7 +919,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * 提交请求到请求处理链
+     * TODO: 提交请求到请求处理链
      * @param si
      */
     public void submitRequest(Request si) {
@@ -1137,7 +1138,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return connThrottle.getDropChance();
     }
 
-    // 服务器端处理连接请求
+    /**
+     * TODO:服务器端处理连接请求
+     * @param cnxn
+     * @param incomingBuffer
+     * @throws IOException
+     * @throws ClientCnxnLimitException
+     */
     public void processConnectRequest(ServerCnxn cnxn, ByteBuffer incomingBuffer)
         throws IOException, ClientCnxnLimitException {
 
@@ -1147,6 +1154,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         ServerMetrics.getMetrics().CONNECTION_TOKEN_DEFICIT.add(connThrottle.getDeficit());
 
         BinaryInputArchive bia = BinaryInputArchive.getArchive(new ByteBufferInputStream(incomingBuffer));
+        // 反序列化
         ConnectRequest connReq = new ConnectRequest();
         connReq.deserialize(bia, "connect");
         if (LOG.isDebugEnabled()) {
@@ -1158,6 +1166,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         ServerMetrics.getMetrics().CONNECTION_REQUEST_COUNT.add(1);
         boolean readOnly = false;
         try {
+            // 是否为只读
             readOnly = bia.readBool("readOnly");
             cnxn.isOldClient = false;
         } catch (IOException e) {
@@ -1167,13 +1176,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     + cnxn.getRemoteSocketAddress()
                     + "; will be dropped if server is in r-o mode");
         }
-        if (!readOnly && this instanceof ReadOnlyZooKeeperServer) {
+        if (!readOnly && this instanceof ReadOnlyZooKeeperServer) {// 不是读模式但是该服务器是只读服务器，抛出异常
             String msg = "Refusing session request for not-read-only client "
                 + cnxn.getRemoteSocketAddress();
             LOG.info(msg);
             throw new CloseRequestException(msg);
         }
-        if (connReq.getLastZxidSeen() > zkDb.dataTree.lastProcessedZxid) {
+        if (connReq.getLastZxidSeen() > zkDb.dataTree.lastProcessedZxid) {// 请求连接的zxid大于DataTree处理的最大的zxid，抛出异常
             String msg = "Refusing session request for client "
                 + cnxn.getRemoteSocketAddress()
                 + " as it has seen zxid 0x"
@@ -1185,22 +1194,29 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             LOG.info(msg);
             throw new CloseRequestException(msg);
         }
+        // 获取超时时间
         int sessionTimeout = connReq.getTimeOut();
+        // 获取密码
         byte passwd[] = connReq.getPasswd();
+        // 获取最短超时时间
         int minSessionTimeout = getMinSessionTimeout();
         if (sessionTimeout < minSessionTimeout) {
             sessionTimeout = minSessionTimeout;
         }
+        // 获取最长超时时间
         int maxSessionTimeout = getMaxSessionTimeout();
         if (sessionTimeout > maxSessionTimeout) {
             sessionTimeout = maxSessionTimeout;
         }
+        // 设置超时时间
         cnxn.setSessionTimeout(sessionTimeout);
         // We don't want to receive any packets until we are sure that the
         // session is setup
+        // 不接收任何packet，直到会话创建成功
         cnxn.disableRecv();
         long sessionId = connReq.getSessionId();
         if (sessionId == 0) {
+            // 创建会话
             long id = createSession(cnxn, passwd, sessionTimeout);
             LOG.debug("Client attempting to establish new session:" +
                             " session = 0x{}, zxid = 0x{}, timeout = {}, address = {}",
@@ -1209,6 +1225,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     connReq.getTimeOut(),
                     cnxn.getRemoteSocketAddress());
         } else {
+            // 表示重新创建会话
             long clientSessionId = connReq.getSessionId();
             LOG.debug("Client attempting to renew session:" +
                             " session = 0x{}, zxid = 0x{}, timeout = {}, address = {}",
@@ -1216,13 +1233,16 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     Long.toHexString(connReq.getLastZxidSeen()),
                     connReq.getTimeOut(),
                     cnxn.getRemoteSocketAddress());
+            // 关闭会话
             if (serverCnxnFactory != null) {
                 serverCnxnFactory.closeSession(sessionId);
             }
             if (secureServerCnxnFactory != null) {
                 secureServerCnxnFactory.closeSession(sessionId);
             }
+            // 设置会话id
             cnxn.setSessionId(sessionId);
+            // 重新打开会话
             reopenSession(cnxn, sessionId, passwd, sessionTimeout);
             ServerMetrics.getMetrics().CONNECTION_REVALIDATE_COUNT.add(1);
 
@@ -1248,7 +1268,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         // 我们有请求，现在为下一步处理和设置
         InputStream bais = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bia = BinaryInputArchive.getArchive(bais);
+        // 创建请求头
         RequestHeader h = new RequestHeader();
+        // 将头反序列化为RequestHeader
         h.deserialize(bia, "header");
 
         // Need to increase the outstanding request count first, otherwise
@@ -1270,10 +1292,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         // pointing
         // to the start of the txn
         incomingBuffer = incomingBuffer.slice();
-        if (h.getType() == OpCode.auth) {
+        if (h.getType() == OpCode.auth) {// 需要进行认证（有密码）
             LOG.info("got auth packet " + cnxn.getRemoteSocketAddress());
+            // 将ByteBuffer转化为AuthPacket
             AuthPacket authPacket = new AuthPacket();
             ByteBufferInputStream.byteBuffer2Record(incomingBuffer, authPacket);
+            // 获取AuthPacket的模式
             String scheme = authPacket.getScheme();
             ServerAuthenticationProvider ap = ProviderRegistry.getServerProvider(scheme);
             Code authReturn = KeeperException.Code.AUTHFAILED;
@@ -1281,21 +1305,24 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 try {
                     // handleAuthentication may close the connection, to allow the client to choose
                     // a different server to connect to.
+                    // 进行认证
                     authReturn = ap.handleAuthentication(new ServerAuthenticationProvider.ServerObjs(this, cnxn), authPacket.getAuth());
                 } catch(RuntimeException e) {
                     LOG.warn("Caught runtime exception from AuthenticationProvider: " + scheme + " due to " + e);
                     authReturn = KeeperException.Code.AUTHFAILED;
                 }
             }
-            if (authReturn == KeeperException.Code.OK) {
+            if (authReturn == KeeperException.Code.OK) {// 认证成功
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Authentication succeeded for scheme: " + scheme);
                 }
                 LOG.info("auth success " + cnxn.getRemoteSocketAddress());
+                // 构造响应头
                 ReplyHeader rh = new ReplyHeader(h.getXid(), 0,
                         KeeperException.Code.OK.intValue());
+                // 发送响应
                 cnxn.sendResponse(rh, null, null);
-            } else {
+            } else {// 认证失败
                 if (ap == null) {
                     LOG.warn("No authentication provider for scheme: "
                             + scheme + " has "
@@ -1304,22 +1331,31 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     LOG.warn("Authentication failed for scheme: " + scheme);
                 }
                 // send a response...
+                // 构造响应头
                 ReplyHeader rh = new ReplyHeader(h.getXid(), 0,
                         KeeperException.Code.AUTHFAILED.intValue());
+                // 发送响应
                 cnxn.sendResponse(rh, null, null);
                 // ... and close connection
+                // 关闭连接的信息
                 cnxn.sendBuffer(ServerCnxnFactory.closeConn);
+                // cnxn不接收任何packet
                 cnxn.disableRecv();
             }
             return;
-        } else if (h.getType() == OpCode.sasl) {
+        } else if (h.getType() == OpCode.sasl) {// 为SASL类型
+            // 处理SASL
             Record rsp = processSasl(incomingBuffer,cnxn);
+            // 构造响应头
             ReplyHeader rh = new ReplyHeader(h.getXid(), 0, KeeperException.Code.OK.intValue());
+            //发送响应
             cnxn.sendResponse(rh,rsp, "response"); // not sure about 3rd arg..what is it?
             return;
         } else {
+            // 创建请求
             Request si = new Request(cnxn, cnxn.getSessionId(), h.getXid(),
               h.getType(), incomingBuffer, cnxn.getAuthInfo());
+            // 设置请求所有者
             si.setOwner(ServerCnxn.me);
             // Always treat packet from the client as a possible local request.
             // 始终将来自客户端的数据包视为可能的本地请求。
