@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.zookeeper.server.SessionTracker</OriginalElement>
+  <nodes>
+    <node x="186.0" y="160.0">org.apache.zookeeper.server.SessionTrackerImpl.SessionImpl</node>
+    <node x="340.5" y="80.0">org.apache.zookeeper.server.SessionTracker.SessionExpirer</node>
+    <node x="228.5" y="80.0">org.apache.zookeeper.server.SessionTracker.Session</node>
+    <node x="0.0" y="160.0">org.apache.zookeeper.server.quorum.LocalSessionTracker</node>
+    <node x="609.0" y="160.0">org.apache.zookeeper.server.quorum.LearnerSessionTracker</node>
+    <node x="272.75" y="0.0">org.apache.zookeeper.server.SessionTracker</node>
+    <node x="413.0" y="160.0">org.apache.zookeeper.server.quorum.LeaderSessionTracker</node>
+    <node x="493.5" y="80.0">org.apache.zookeeper.server.quorum.UpgradeableSessionTracker</node>
+    <node x="42.5" y="80.0">org.apache.zookeeper.server.SessionTrackerImpl</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.zookeeper.server.SessionTracker.SessionExpirer" target="org.apache.zookeeper.server.SessionTracker">
+      <point x="0.0" y="-15.0" />
+      <point x="407.0" y="60.0" />
+      <point x="357.75" y="60.0" />
+      <point x="17.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.SessionTracker.Session" target="org.apache.zookeeper.server.SessionTracker">
+      <point x="0.0" y="-15.0" />
+      <point x="274.5" y="60.0" />
+      <point x="323.75" y="60.0" />
+      <point x="-17.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LocalSessionTracker" target="org.apache.zookeeper.server.SessionTrackerImpl">
+      <point x="2.8421709430404007E-14" y="-15.0" />
+      <point x="-40.5" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LearnerSessionTracker" target="org.apache.zookeeper.server.quorum.UpgradeableSessionTracker">
+      <point x="0.0" y="-15.0" />
+      <point x="699.0" y="135.0" />
+      <point x="653.25" y="135.0" />
+      <point x="53.25" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.SessionTrackerImpl" target="org.apache.zookeeper.server.SessionTracker">
+      <point x="2.8421709430404007E-14" y="-15.0" />
+      <point x="123.50000000000003" y="50.0" />
+      <point x="289.75" y="50.0" />
+      <point x="-51.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.SessionTrackerImpl.SessionImpl" target="org.apache.zookeeper.server.SessionTracker.Session">
+      <point x="29.5" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.SessionTrackerImpl.SessionImpl" target="org.apache.zookeeper.server.SessionTrackerImpl">
+      <point x="-29.5" y="-15.0" />
+      <point x="215.5" y="135.0" />
+      <point x="164.0" y="135.0" />
+      <point x="40.5" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.UpgradeableSessionTracker" target="org.apache.zookeeper.server.SessionTracker">
+      <point x="0.0" y="-15.0" />
+      <point x="600.0" y="50.0" />
+      <point x="391.75" y="50.0" />
+      <point x="51.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LeaderSessionTracker" target="org.apache.zookeeper.server.quorum.UpgradeableSessionTracker">
+      <point x="0.0" y="-15.0" />
+      <point x="501.0" y="135.0" />
+      <point x="546.75" y="135.0" />
+      <point x="-53.25" y="15.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="394.5" y="95.0" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

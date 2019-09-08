@@ -149,8 +149,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     final Deque<ChangeRecord> outstandingChanges = new ArrayDeque<>();
     // this data structure must be accessed under the outstandingChanges lock
     // 记录path对应的ChangeRecord
-    final Map<String, ChangeRecord> outstandingChangesForPath =
-        new HashMap<String, ChangeRecord>();
+    final Map<String, ChangeRecord> outstandingChangesForPath = new HashMap<String, ChangeRecord>();
 
     // 连接工厂
     protected ServerCnxnFactory serverCnxnFactory;

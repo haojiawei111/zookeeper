@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A session tracker that supports upgradeable local sessions.
+ * 支持可升级本地会话的会话跟踪器。
  */
 public abstract class UpgradeableSessionTracker implements SessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(UpgradeableSessionTracker.class);

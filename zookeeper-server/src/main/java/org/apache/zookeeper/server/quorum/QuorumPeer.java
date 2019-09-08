@@ -613,6 +613,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     /**
      * Enables/Disables sync request processor. This option is enabled
      * by default and is to be used with observers.
+     * 启用/禁用同步请求处理器。默认情况下，此选项已启用，将与观察者一起使用。
      */
     protected boolean syncEnabled = true;
 
@@ -1816,10 +1817,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
      * @return
      */
     public boolean getSyncEnabled() {
+        // "zookeeper.observer.syncEnabled"
         if (System.getProperty(SYNC_ENABLED) != null) {
             LOG.info(SYNC_ENABLED + "=" + Boolean.getBoolean(SYNC_ENABLED));   
             return Boolean.getBoolean(SYNC_ENABLED);
-        } else {        
+        } else {
+            // 默认是true
             return syncEnabled;
         }
     }

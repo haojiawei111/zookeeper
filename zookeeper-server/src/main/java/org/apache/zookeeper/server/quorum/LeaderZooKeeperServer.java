@@ -50,8 +50,9 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     PrepRequestProcessor prepRequestProcessor;
 
     /**
-     * @param port
-     * @param dataDir
+     * @param logFactory
+     * @param self
+     * @param zkDb
      * @throws IOException
      */
     LeaderZooKeeperServer(FileTxnSnapLog logFactory, QuorumPeer self, ZKDatabase zkDb) throws IOException {
