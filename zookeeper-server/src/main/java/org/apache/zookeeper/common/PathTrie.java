@@ -48,6 +48,21 @@ import org.slf4j.LoggerFactory;
  *      (bc)
  *   cf/
  *   (cf)
+ *
+ *
+ *
+ *   zk中的目录 /zookeeper/quota/a/b/c/zookeeper_limits 对应的PathTrie结构为
+ *
+ *                   root
+ *                  /
+ *                a
+ *               /
+ *             b
+ *           /
+ *         c
+ *       /
+ * zookeeper_limits
+ *
  */    
 public class PathTrie {
     /**
@@ -60,7 +75,8 @@ public class PathTrie {
      * PathTrie的根节点
      */
     private final TrieNode rootNode ;
-    
+
+    // TrieNode是字典树中每个node的情况，主要记录parent，以及children的set
     static class TrieNode {
         //属性，看源码显示,就是设置了配额的节点
         boolean property = false;
@@ -114,7 +130,9 @@ public class PathTrie {
             return this.property;
         }
         /**
+         *
          * 添加childName的相对路径到map,注意:在调用方设置node的parent
+         *
          * add a child to the existing node
          * @param childName the string name of the child
          * @param node the node that is the child
@@ -175,7 +193,6 @@ public class PathTrie {
         /**
          * get the list of children of this 
          * trienode.
-         * @param node to get its children
          * @return the string list of its children
          */
         //获取子节点String[]列表
@@ -211,6 +228,8 @@ public class PathTrie {
     }
     
     /**
+     * 字典树的增
+     *
      * add a path to the path trie 
      * @param path
      */
@@ -218,23 +237,27 @@ public class PathTrie {
         if (path == null) {
             return;
         }
-        String[] pathComponents = path.split("/");
+        String[] pathComponents = path.split("/");//将路径按照"/" split开
         TrieNode parent = rootNode;
         String part = null;
         if (pathComponents.length <= 1) {
             throw new IllegalArgumentException("Invalid path " + path);
         }
-        for (int i=1; i<pathComponents.length; i++) {
+        for (int i=1; i<pathComponents.length; i++) {//从1开始因为路径都是"/"开头的,pathComponents[0]会是""
             part = pathComponents[i];
             if (parent.getChild(part) == null) {
-                parent.addChild(part, new TrieNode(parent));
+                parent.addChild(part, new TrieNode(parent));//一方面parent将这个child记录在map，一方面将这个child node进行初始化以及设置parent
             }
-            parent = parent.getChild(part);
+            parent = parent.getChild(part);//进入到对应的child
         }
-        parent.setProperty(true);
+        parent.setProperty(true);//最后这个节点设置配额属性
     }
     
     /**
+     * 字典树的删
+     *
+     * TODO: deletePath传入的参数,并不会一定精确到叶子节点,也就是可能会到某个目录，再调用realParent.deleteChild进行TrieNode的deleteChild操作
+     *
      * delete a path from the trie
      * @param path the path to be deleted
      */
@@ -257,23 +280,27 @@ public class PathTrie {
             parent = parent.getChild(part);
             LOG.info("{}",parent);
         }
-        TrieNode realParent  = parent.getParent();
-        realParent.deleteChild(part);
+        TrieNode realParent  = parent.getParent();//得到被删除TrieNode的parent
+        realParent.deleteChild(part);//将这个node从parent的子列表中删除
     }
     
     /**
+     * 字典树的查
+     * 1.将path按/分开，进行字典树查找，从根开始
+     * 2.记住路径中最后一个拥有配额标记的TrieNode
+     *
      * return the largest prefix for the input path.
      * @param path the input path
      * @return the largest prefix for the input path.
      */
-    public String findMaxPrefix(String path) {
+    public String findMaxPrefix(String path) {//找到最近的一个拥有配额标记的祖先节点
         if (path == null) {
             return null;
         }
         if ("/".equals(path)) {
             return path;
         }
-        String[] pathComponents = path.split("/");
+        String[] pathComponents = path.split("/");//按照/分开
         TrieNode parent = rootNode;
         List<String> components = new ArrayList<String>();
         if (pathComponents.length <= 1) {
@@ -286,10 +313,10 @@ public class PathTrie {
         while((i < pathComponents.length)) {
             if (parent.getChild(pathComponents[i]) != null) {
                 part = pathComponents[i];
-                parent = parent.getChild(part);
+                parent = parent.getChild(part);//一层层到子节点
                 components.add(part);
-                if (parent.getProperty()) {
-                    lastindex = i-1;
+                if (parent.getProperty()) {//如果对应的子节点有标记
+                    lastindex = i-1;//更新最后一个有标记的节点(也就是最近的有标记的祖先)
                 }
             }
             else {
@@ -300,7 +327,7 @@ public class PathTrie {
         for (int j=0; j< (lastindex+1); j++) {
             sb.append("/" + components.get(j));
         }
-        return sb.toString();
+        return sb.toString();//返回最近的,有标记的祖先的路径
     }
 
     /**

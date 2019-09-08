@@ -23,6 +23,9 @@ import java.util.Set;
 /**
  * 客户端侧的Watch管理接口
  * ClientWatchManager，接口类型，表示客户端的Watcher管理者，其定义了materialized方法，需子类实现。
+ *
+ * ZKWatchManager为ClientWatchManager的实现
+ *
  */
 public interface ClientWatchManager {
     /**

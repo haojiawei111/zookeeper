@@ -40,6 +40,22 @@ import org.slf4j.LoggerFactory;
  * This class manages watches. It allows watches to be associated with a string
  * and removes watchers and their watches in addition to managing triggers.
  * 服务端的WatchManager，管理Watcher。
+ *
+ * <p>
+ * client端注册watcher
+ *     client端watcher的注册，管理
+ *     client端watcher在网络请求中的体现
+ *     client端接收server回复时，watcher的注册
+ * server端处理watcher
+ *     收到client请求时进行ServerCnxn的注册
+ *     触发事件时，通过WatchManager找到相应Watcher(ServerCnxn),进而通知对该事件感兴趣的client
+ * client端回调watcher
+ *     client端接收server的通知，调用queueEvent函数放在waitingEvents队列中
+ *     ClientCnxn.EventThread#run调用ClientCnxn.EventThread#processEvent，消费waitingEvents，回调watcher.process()
+ *
+ * <p>
+ *
+ *
  */
 //WatcherManager类用于管理watchers和相应的触发器。watchTable表示从节点路径到watcher集合的映射，而watch2Paths则表示从watcher到所有节点路径集合的映射。
 public class WatchManager implements IWatchManager {
@@ -70,6 +86,9 @@ public class WatchManager implements IWatchManager {
 
     /**
      * addWatch是同步方法，线程安全
+     *
+     * 添加一个watch，把path，watch放入两个表中
+     *
      * @param path znode path
      * @param watcher watcher object reference
      *
@@ -124,6 +143,15 @@ public class WatchManager implements IWatchManager {
         }
     }
 
+    /**
+     * triggerWatch方法用于根据path，EventType找到需要触发的watch集合，并过滤掉抑制触发的watch集合
+     * 然后触发这些watcher
+     *
+     * @param path znode path
+     * @param type the watch event type
+     *
+     * @return
+     */
     @Override
     public WatcherOrBitSet triggerWatch(String path, EventType type) {
         return triggerWatch(path, type, null);
@@ -131,6 +159,7 @@ public class WatchManager implements IWatchManager {
 
     /**
      * 该方法主要用于触发watch事件，并对事件进行处理。
+     * 从指定的watcher集合supress 中筛选出要触发的watcher，将剩下的watcher执行对应的回调
      * @param path znode path
      * @param type the watch event type
      * @param supress
@@ -150,23 +179,24 @@ public class WatchManager implements IWatchManager {
                             ZooTrace.EVENT_DELIVERY_TRACE_MASK,
                             "No watchers for " + path);
                 }
-                return null;
+                return null;//如果watchTable没有path这条记录，返回空
             }
             for (Watcher w : watchers) {// 遍历watcher集合
                 Set<String> paths = watch2Paths.get(w);// 根据watcher从watcher表中取出路径集合
                 if (paths != null) {// 路径集合不为空
                     // 则移除路径
-                    paths.remove(path);
+                    paths.remove(path);//在watch2Paths中删掉[watcher,path]这种记录
                 }
             }
         }
 
         for (Watcher w : watchers) {// 遍历watcher集合
-            if (supress != null && supress.contains(w)) { // supress不为空并且包含watcher，则跳过
+            if (supress != null && supress.contains(w)) { //从supress中过滤掉部分watcher(类似抑制触发)
                 continue;
             }
-            // 进行处理
-            w.process(e);
+            // 进行处理 这里调用的是ServerCnxn#process，默认实现 NIOServerCnxn#process
+            // server触发watch，其实就是给相应的client发送回复，然后client端自己处理
+            w.process(e);//没有被抑制的watcher进行回调
         }
 
         // 更新各自的Metric
@@ -191,7 +221,7 @@ public class WatchManager implements IWatchManager {
             break;
         }
 
-        return new WatcherOrBitSet(watchers);
+        return new WatcherOrBitSet(watchers);//返回所有触发的watcher
     }
 
     //dumpWatches用作将watchTable或watch2Paths写入磁盘。

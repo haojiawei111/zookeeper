@@ -417,6 +417,7 @@ public class ClientCnxn {
 
     private Object eventOfDeath = new Object();
 
+    //TODO:WatcherSetEventPair 将Event以及对应需要触发的watches集合进行组合绑定
     private static class WatcherSetEventPair {
         //事件触发需要被通知的watches集合
         private final Set<Watcher> watchers;

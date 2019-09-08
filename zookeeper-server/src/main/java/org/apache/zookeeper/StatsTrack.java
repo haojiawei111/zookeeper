@@ -44,7 +44,7 @@ public class StatsTrack {
      * to -1.
      * @param stats the stat string to be intialized with
      */
-    public StatsTrack(String stats) {
+    public StatsTrack(String stats) {//根据 count=int,bytes=long 的一个String进行解析
         if (stats == null) {
             stats = "count=-1,bytes=-1";
         }

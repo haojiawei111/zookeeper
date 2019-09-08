@@ -30,6 +30,10 @@ package org.apache.zookeeper;
  *     限制信息包含对某个路径的要求大小(count或者bytes)
  *     状态信息包含对某个路径的实际大小(count或者bytes)
  * 以及提供path转换到对应的限制path和状态path的方法
+ *
+ * /zookeeper/quota/xxx(可以有多级目录)/zookeeper_limits 就是针对/xxx(可以有多级目录)的限制,是理论上的限制
+ * /zookeeper/quota/xxx(可以有多级目录)/statNode 就是针对/xxx(可以有多级目录)的真实状态记录
+ *
  */
 public class Quotas {
 

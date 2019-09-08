@@ -39,6 +39,10 @@ import org.apache.yetus.audience.InterfaceAudience;
  *
  * EventType，枚举类型，Event的内部类，表示Zookeeper中发生的事件类型。
  *
+ * Watcher的意义，通知状态(keeperState)与事件类型(EventType)
+ * WatchedEvent 和 WatcherEvent 描述zk检测到变化的事件，以及对应用于网络传输的封装类
+ * ClientWatchManager接口以及实现类ZKWatchManager :client端完成根据Event找到需要触发的watches
+ * WatcherSetEventPair 将Event以及对应需要触发的watches集合进行组合绑定
  */
 @InterfaceAudience.Public
 public interface Watcher {
@@ -233,5 +237,6 @@ public interface Watcher {
     }
     // 不同watch都会实现自己的回调方法来执行它
     // 其代表了实现Watcher接口时必须实现的的方法，即定义进行处理，WatchedEvent表示观察的事件。
+    //回调函数实现该函数，表示根据event执行的行为
     abstract public void process(WatchedEvent event);
 }

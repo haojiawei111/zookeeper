@@ -504,7 +504,10 @@ public class ZooKeeper implements AutoCloseable {
 
             switch (type) {
             case None:  //eventType是null
-                // 则所有dataWatches,existWatches,childWatches都需要被通知,???为什么要这样干
+                // 则所有dataWatches,existWatches,childWatches都需要被通知
+                // 当客户端删除当前连接并重新连接到服务器时，所有现有监视都被视为已触发，但未传递的事件将丢失。
+                // 为了模拟这一点，客户端将生成一个特殊事件来告诉事件处理程序已删除连接。
+                // 此特殊事件具有EventType None和KeeperState Disconnected。
                 result.add(defaultWatcher);//添加默认watcher
                 boolean clear = disableAutoWatchReset && state != Watcher.Event.KeeperState.SyncConnected;//获取clear标记
                 synchronized(dataWatches) {

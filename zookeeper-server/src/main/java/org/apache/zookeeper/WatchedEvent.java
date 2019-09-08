@@ -28,9 +28,11 @@ import org.apache.zookeeper.proto.WatcherEvent;
  *  the current state of the ZooKeeper, and the path of the znode that
  *  was involved in the event.
  *
- *  WatchedEvent表示Watcher 能够响应的ZooKeeper上的更改。 WatchedEvent包括发生的事情，ZooKeeper的当前状态，以及参与事件的znode的路径。
+ *  WatchedEvent表示Watcher 能够响应的ZooKeeper上的更改。 WatchedEvent包括发生的事件的类型，ZooKeeper的当前状态，以及参与变化影响的znode的path
  *
  *  WatchedEvent，表示对ZooKeeper上发生变化后的反馈，包含了KeeperState和EventType。
+ *
+ *  WatcherEvent : 是WatchedEvent用于网络传输的封装类 {@see getWrapper()}
  *
  */
 @InterfaceAudience.Public
@@ -81,7 +83,7 @@ public class WatchedEvent {
 
     /**
      *  Convert WatchedEvent to type that can be sent over network
-     *  将WatchedEvent转换为可以通过网络发送的类型，序列化然后通过RPC框架发送出去
+     *  TODO:将WatchedEvent转换为可以通过网络发送的类型，序列化然后通过RPC框架发送出去
      */
     public WatcherEvent getWrapper() {
         // WatcherEvent实现了Record接口，可以理解为WatchedEvent用于网络传输的封装类
