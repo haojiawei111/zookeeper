@@ -42,10 +42,8 @@ public abstract class UpgradeableSessionTracker implements SessionTracker {
 
     public void createLocalSessionTracker(SessionExpirer expirer,
             int tickTime, long id, ZooKeeperServerListener listener) {
-        this.localSessionsWithTimeouts =
-            new ConcurrentHashMap<Long, Integer>();
-        this.localSessionTracker = new LocalSessionTracker(
-            expirer, this.localSessionsWithTimeouts, tickTime, id, listener);
+        this.localSessionsWithTimeouts =new ConcurrentHashMap<Long, Integer>();
+        this.localSessionTracker = new LocalSessionTracker(expirer, this.localSessionsWithTimeouts, tickTime, id, listener);
         this.upgradingSessions = new ConcurrentHashMap<Long, Integer>();
     }
 

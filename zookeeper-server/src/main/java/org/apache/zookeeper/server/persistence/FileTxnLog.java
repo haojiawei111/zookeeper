@@ -50,6 +50,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 事务日志
+ *
  * This class implements the TxnLog interface. It provides api's
  * to access the txnlogs and add entries to it.
  * 该类实现TxnLog接口。它提供api 来访问txnlog并向其添加条目。
@@ -229,7 +231,7 @@ public class FileTxnLog implements TxnLog {
      * rollover the current log file to a new one.
      * @throws IOException
      */
-    // 将当前日志文件翻转为新文件
+    // 从当前日志滚到下一个
     public synchronized void rollLog() throws IOException {
         if (logStream != null) {
             this.logStream.flush();
@@ -276,7 +278,7 @@ public class FileTxnLog implements TxnLog {
            if(LOG.isInfoEnabled()){
                 LOG.info("Creating new log file: " + Util.makeLogName(hdr.getZxid()));// 文件名 log."十六进制(zxid)"
            }
-
+            //生成一个新的log文件
            logFileWrite = new File(logDir, Util.makeLogName(hdr.getZxid()));
            fos = new FileOutputStream(logFileWrite);
            logStream=new BufferedOutputStream(fos);
@@ -395,8 +397,7 @@ public class FileTxnLog implements TxnLog {
     }
 
     /**
-     * commit the logs. make sure that everything hits the
-     * disk
+     * commit the logs. make sure that everything hits the disk
      */
     //提交事务日志至磁盘
     public synchronized void commit() throws IOException {
@@ -411,6 +412,12 @@ public class FileTxnLog implements TxnLog {
                 long startSyncNS = System.nanoTime();
 
                 FileChannel channel = log.getChannel();
+                // force方法会把所有未写磁盘的数据都强制写入磁盘。
+                // 这是因为在操作系统中出于性能考虑回把数据放入缓冲区，所以不能保证数据在调用write写入文件通道后就及时写到磁盘上了，除非手动调用force方法。
+                // force方法需要一个布尔参数，代表是否把meta data也一并强制写入。
+
+                // flush不能保证写入磁盘或者写入成功。 force会保证写入磁盘成功。 sync之前要调用flush把缓种数据写入。
+                // flush+sync=force。
                 channel.force(false);
 
                 syncElapsedMS = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
@@ -434,6 +441,7 @@ public class FileTxnLog implements TxnLog {
         }
 
         // Roll the log file if we exceed the size limit
+        // 如果超出大小限制，请滚动日志文件
         if(txnLogSizeLimit > 0) {
             long logSize = getCurrentLogSize();
 
@@ -738,8 +746,7 @@ public class FileTxnLog implements TxnLog {
 
         /**
          * Invoked to indicate that the input stream has been created.
-         * @param ia input archive
-         * @param is file input stream associated with the input archive.
+         * @param logFile
          * @throws IOException
          **/
         protected InputArchive createInputArchive(File logFile) throws IOException {

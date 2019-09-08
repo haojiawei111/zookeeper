@@ -78,12 +78,12 @@ public interface TxnLog extends Closeable {
     long getLastLoggedZxid() throws IOException;
     
     /**
-     * truncate the log to get in sync with the 
-     * leader.
+     * truncate the log to get in sync with the leader.
+     * 截断日志以与领导者同步。
      * @param zxid the zxid to truncate at.
      * @throws IOException 
      */
-    // 清空日志，与Leader保持同步
+    // 清空zxid以后的日志
     boolean truncate(long zxid) throws IOException;
     
     /**
@@ -103,7 +103,7 @@ public interface TxnLog extends Closeable {
     void commit() throws IOException;
 
     /**
-     *
+     * 事务日志的已用同步时间（以毫秒为单位）
      * @return transaction log's elapsed sync time in milliseconds
      */
     long getTxnLogSyncElapsedTime();

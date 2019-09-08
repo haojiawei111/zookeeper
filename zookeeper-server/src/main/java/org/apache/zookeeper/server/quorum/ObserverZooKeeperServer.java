@@ -88,7 +88,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
      * firstProcesor->commitProcessor->finalProcessor
      */
     // 请求处理链 这里两条处理链
-    // FollowerRequestProcessor -> CommitProcessor -> FinalRequestProcessor
+    // ObserverRequestProcessor -> CommitProcessor -> FinalRequestProcessor
     // SyncRequestProcessor(如果syncRequestProcessorEnabled为true)
     @Override
     protected void setupRequestProcessors() {      

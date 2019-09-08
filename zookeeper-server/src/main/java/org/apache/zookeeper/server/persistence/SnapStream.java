@@ -165,7 +165,7 @@ public class SnapStream {
             throws IOException {
         long checkSum = is.getChecksum().getValue();
         long val = ia.readLong("val");
-        if (val != checkSum) {
+        if (val != checkSum) {//比较checkSum
             throw new IOException("CRC corruption");
         }
     }

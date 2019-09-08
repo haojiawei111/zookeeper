@@ -70,6 +70,8 @@ public class FilePadding {
     /**
      * pad the current file to increase its size to the next multiple of preAllocSize greater than the current size and position
      *
+     * 填充当前文件以将其大小增加到preAllocSize的下一个倍数，大于当前大小和位置
+     *
      * @param fileChannel the fileChannel of the file to be padded
      * @throws IOException
      */

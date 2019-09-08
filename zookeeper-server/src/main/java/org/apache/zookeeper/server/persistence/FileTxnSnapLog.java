@@ -51,14 +51,14 @@ import org.slf4j.LoggerFactory;
 public class FileTxnSnapLog {
     //the directory containing the
     //the transaction logs
-    final File dataDir;
+    final File dataDir;//事务日志目录
     //the directory containing the
     //the snapshot directory
-    final File snapDir;
+    final File snapDir;//快照目录
     TxnLog txnLog;
     SnapShot snapLog;
     private final boolean autoCreateDB;
-    public final static int VERSION = 2;
+    public final static int VERSION = 2;//版本号
     public final static String version = "version-";
 
     private static final Logger LOG = LoggerFactory.getLogger(FileTxnSnapLog.class);
@@ -80,6 +80,7 @@ public class FileTxnSnapLog {
      * restored.
      * 此监听器帮助外部apis调用恢复以在数据被恢复时收集信息。
      */
+    //根据日志恢复dataTree，session时的回调函数
     public interface PlayBackListener {
         void onTxnLoaded(TxnHeader hdr, Record rec);
     }
@@ -93,7 +94,7 @@ public class FileTxnSnapLog {
     public FileTxnSnapLog(File dataDir, File snapDir) throws IOException {
         LOG.debug("Opening datadir:{} snapDir:{}", dataDir, snapDir);
 
-        // 子目录 "version-2"
+        // 默认生成一个version-2的文件夹
         this.dataDir = new File(dataDir, version + VERSION);
         this.snapDir = new File(snapDir, version + VERSION);
 
@@ -208,10 +209,11 @@ public class FileTxnSnapLog {
     }
 
     /**
+     * TODO: 根据snapshot和txnlog，恢复datatree以及sessions，并配置回调函数
      * this function restores the server
      * database after reading from the
      * snapshots and transaction logs
-     * 此函数在读取快照和事务日志后恢复服务器数据库
+     *
      * @param dt the datatree to be restored
      * @param sessions the sessions to be restored
      * @param listener the playback listener to run on the
@@ -219,8 +221,7 @@ public class FileTxnSnapLog {
      * @return the highest zxid restored
      * @throws IOException
      */
-    public long restore(DataTree dt, Map<Long, Integer> sessions,
-                        PlayBackListener listener) throws IOException {
+    public long restore(DataTree dt, Map<Long, Integer> sessions,PlayBackListener listener) throws IOException {
         //取最近的快照进行恢复
         long deserializeResult = snapLog.deserialize(dt, sessions);
         // 事务日志对象

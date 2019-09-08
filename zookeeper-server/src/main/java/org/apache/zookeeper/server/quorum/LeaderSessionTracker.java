@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The leader session tracker tracks local and global sessions on the leader.
+ * 领导者会话跟踪器跟踪领导者的本地和全球会话。
  */
 public class LeaderSessionTracker extends UpgradeableSessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(LeaderSessionTracker.class);
@@ -42,6 +43,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
 
     /**
      * Server id of the leader
+     * leader的服务器ID
      */
     private final long serverId;
 
@@ -66,7 +68,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
         }
         globalSessionTracker.removeSession(sessionId);
     }
-
+    // LeaderSessionTracker启动时同时启动global和local
     public void start() {
         globalSessionTracker.start();
         if (localSessionTracker != null) {

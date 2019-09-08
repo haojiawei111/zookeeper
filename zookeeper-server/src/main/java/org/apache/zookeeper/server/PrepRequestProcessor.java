@@ -87,8 +87,10 @@ import java.util.concurrent.LinkedBlockingQueue;
  * state of the system. It counts on ZooKeeperServer to update
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
+ * 该请求处理器通常处于RequestProcessor更改的开始。
+ * 它设置与更改系统状态的请求关联的任何事务。
+ * 它依靠ZooKeeperServer来更新outstandingRequests，因此它可以考虑生成事务时要应用的队列中的事务。
  */
-    //PrepRequestProcessor，其通常是请求处理链的第一个处理器
     // PrepRequestProcessor继承了Thread类并实现了RequestProcessor接口，表示其可以作为线程使用。
     //类的核心属性有submittedRequests和nextProcessor，前者表示已经提交的请求，而后者表示提交的下个处理器
 public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
@@ -110,10 +112,13 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      */
     // 仅用作测试使用
     private static  boolean failCreate = false;
+
     // 已提交请求队列
     LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<Request>();
+
     // 下个处理器
     private final RequestProcessor nextProcessor;
+
     // Zookeeper服务器
     ZooKeeperServer zks;
 
@@ -135,12 +140,13 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
         failCreate = b;
     }
 
-    // run函数是对Thread类run函数的重写，其核心逻辑相对简单，即不断从队列中取出request进行处理，其会调用pRequest函数
+    // run函数是对Thread类run函数的重写，其核心逻辑相对简单
+    // TODO:不断从队列中取出request进行处理，其会调用pRequest函数
     @Override
     public void run() {
         try {
             while (true) {
-                // 添加Metrics监控
+                // 更新Metrics监控
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_SIZE.add(submittedRequests.size());
                 // 从队列中取出一个请求
                 Request request = submittedRequests.take();
@@ -152,6 +158,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                     ZooTrace.logRequest(LOG, traceMask, 'P', request, "");
                 }
                 if (Request.requestOfDeath == request) {// 在关闭处理器之后，会添加requestOfDeath，表示关闭后不再处理请求
+                    // 关闭处理器
                     break;
                 }
                 long prepStartTime = Time.currentElapsedTime();
@@ -1051,6 +1058,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     }
 
     // 把请求放入到该请求处理器的队列中去
+    // 将request加到submittedRequests中
     public void processRequest(Request request) {
         //放入请求队列的时间
         request.prepQueueStartTime =  Time.currentElapsedTime();

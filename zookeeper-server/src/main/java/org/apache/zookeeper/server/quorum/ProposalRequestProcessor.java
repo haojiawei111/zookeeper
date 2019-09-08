@@ -26,12 +26,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This RequestProcessor simply forwards requests to an AckRequestProcessor and
- * SyncRequestProcessor.
+ * ProposalRequestProcessor用于向Follower发送Proposal，来完成Zab算法．
+ *
+ * This RequestProcessor simply forwards requests to an AckRequestProcessor and SyncRequestProcessor.
+ * 该RequestProcessor简单地将请求转发给SyncRequestProcessor和AckRequestProcessor
  */
 public class ProposalRequestProcessor implements RequestProcessor {
-    private static final Logger LOG =
-        LoggerFactory.getLogger(ProposalRequestProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProposalRequestProcessor.class);
 
     LeaderZooKeeperServer zks;
 
@@ -49,6 +50,7 @@ public class ProposalRequestProcessor implements RequestProcessor {
 
     /**
      * initialize this processor
+     * TODO：启动SyncRequestProcessor处理器
      */
     public void initialize() {
         syncProcessor.start();
@@ -67,10 +69,12 @@ public class ProposalRequestProcessor implements RequestProcessor {
          * contain the handler. In this case, we add it to syncHandler, and
          * call processRequest on the next processor.
          */
-
+        // 在下面的IF-THEN-ELSE块中，我们处理leader的同步。
+        // 如果同步来自follower，则follower处理程序将其添加到syncHandler。
+        // 否则，如果它是发出sync命令的leader的客户端，则syncHandler将不包含该处理程序。在这种情况下，我们将它添加到syncHandler，并在下一个处理器上调用processRequest。
         if (request instanceof LearnerSyncRequest){
             zks.getLeader().processSync((LearnerSyncRequest)request);
-        } else {//这个是Leader
+        } else {
             nextProcessor.processRequest(request);
             if (request.getHdr() != null) {
                 // We need to sync and get consensus on any transactions

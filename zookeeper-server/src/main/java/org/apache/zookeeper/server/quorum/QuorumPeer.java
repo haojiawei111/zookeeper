@@ -210,9 +210,10 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
         /**
          * Performs a DNS lookup for server address and election address.
+         * 对服务器地址和选举地址执行DNS查找。
          *
-         * If the DNS lookup fails, this.addr and electionAddr remain
-         * unmodified.
+         * If the DNS lookup fails, this.addr and electionAddr remain unmodified.
+         * 如果DNS查找失败，则this.addr和electionAddr保持不变。
          */
         public void recreateSocketAddresses() {
             if (this.addr == null) {

@@ -71,7 +71,7 @@ public class FileSnap implements SnapShot {
         // we run through 100 snapshots (not all of them)
         // if we cannot get it running within 100 snapshots
         // we should  give up
-        //找到最新的100个(大概率)valid的快照文件
+        //找到最新的100个valid的快照文件
         List<File> snapList = findNValidSnapshots(100);
         if (snapList.size() == 0) {
             return -1L;
@@ -88,7 +88,7 @@ public class FileSnap implements SnapShot {
                 deserialize(dt, sessions, ia);
                 //反序列填充session和dataTree之后，计算checkSum
                 SnapStream.checkSealIntegrity(snapIS, ia);
-                foundValid = true;
+                foundValid = true;//如果前100个有一个valid，就break
                 break;
             } catch (IOException e) {
                 LOG.warn("problem reading snap file " + snap, e);
@@ -113,7 +113,7 @@ public class FileSnap implements SnapShot {
             InputArchive ia) throws IOException {
         FileHeader header = new FileHeader();
         // 反序列化至header
-        header.deserialize(ia, "fileheader");
+        header.deserialize(ia, "fileheader");// 反序列化至header
         if (header.getMagic() != SNAP_MAGIC) {
             throw new IOException("mismatching magic headers "
                     + header.getMagic() +

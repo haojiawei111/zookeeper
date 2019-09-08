@@ -47,14 +47,17 @@ import org.slf4j.LoggerFactory;
  * A secondary function of the learner session tracker is to remember sessions
  * which have been touched in this service.  This information is passed along
  * to the leader with a ping.
+ *
+ * learner会话跟踪器被学习者（followers和observers）用于跟踪可能会或可能不会回应领导者的zookeeper会话。
+ * 创建新会话时，它将本地保存在包装的LocalSessionTracker中。随后可以根据需要升级到全局会话。
+ * 如果请求升级，会话将从本地集合中删除，同时保留相同的会话ID。呼叫者可以为领导者排队会话创建请求。学习者会话跟踪器的辅助功能是记
  */
 public class LearnerSessionTracker extends UpgradeableSessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(LearnerSessionTracker.class);
 
     private final SessionExpirer expirer;
-    // Touch table for the global sessions
-    private final AtomicReference<Map<Long, Integer>> touchTable =
-        new AtomicReference<Map<Long, Integer>>();
+    // Touch table for the global sessions 触摸全局会话的表
+    private final AtomicReference<Map<Long, Integer>> touchTable = new AtomicReference<Map<Long, Integer>>();
     private final long serverId;
     private final AtomicLong nextSessionId = new AtomicLong();
 
@@ -84,6 +87,7 @@ public class LearnerSessionTracker extends UpgradeableSessionTracker {
         touchTable.get().remove(sessionId);
     }
 
+    // 启动时只启动了localSessionTracker：
     public void start() {
         if (localSessionTracker != null) {
             localSessionTracker.start();
