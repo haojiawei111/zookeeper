@@ -15,10 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.zookeeper.server;
-
-
 
 import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.server.metric.AvgMinMaxCounter;
@@ -30,27 +27,32 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Basic Server Statistics基本服务器统计
+ *
+ * jmx中如何用这些参数的
  */
 public class ServerStats {
     private static final Logger LOG = LoggerFactory.getLogger(ServerStats.class);
 
-    private final AtomicLong packetsSent = new AtomicLong();
-    private final AtomicLong packetsReceived = new AtomicLong();
+    private final AtomicLong packetsSent = new AtomicLong();//发送包个数
+    private final AtomicLong packetsReceived = new AtomicLong();//接收个数
 
     private final AvgMinMaxCounter requestLatency = new AvgMinMaxCounter("request_latency");
 
     private final AtomicLong fsyncThresholdExceedCount = new AtomicLong(0);
 
     private final BufferStats clientResponseStats = new BufferStats();
-
+    //Provider对象，提供部分统计数据
     private final Provider provider;
     private final long startTime = Time.currentElapsedTime();
 
+    // 内部类Provider完成服务器状态，队列数量，client存活数量等信息
+    // 属性，函数完成延迟，发送，接收量等信息
     public static interface Provider {
-        public long getOutstandingRequests();
-        public long getLastProcessedZxid();
-        public String getState();
-        public int getNumAliveConnections();
+        // getOutstandingRequests，getLastProcessedZxid，getNumAliveConnections，getDataDirSize，getLogDirSize就一种默认实现，在ZooKeeperServer类中
+        public long getOutstandingRequests();//获取队列中还没有被处理的请求数量
+        public long getLastProcessedZxid();//获取最后一个处理的zxid
+        public String getState();//获取服务器状态
+        public int getNumAliveConnections();//获取存活的客户端连接总数
         public long getDataDirSize();
         public long getLogDirSize();
     }
@@ -133,6 +135,7 @@ public class ServerStats {
     /**
      * Update request statistic. This should only be called from a request
      * that originated from that machine.
+     * 更新延迟统计数据
      */
     public void updateLatency(Request request, long currentTime) {
         long latency = currentTime - request.createTime;

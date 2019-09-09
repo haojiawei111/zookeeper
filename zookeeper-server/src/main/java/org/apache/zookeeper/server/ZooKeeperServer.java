@@ -465,6 +465,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         hzxid.set(zxid);
     }
 
+
     private void close(long sessionId) {
         Request si = new Request(null, sessionId, 0, OpCode.closeSession, null, null);
         setLocalSessionFlag(si);
@@ -493,6 +494,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     /**
      * 执行会话过期
+     *
+     * 为了使对该会话的关闭操作在整个服务端集群都生效，Zookeeper使用了提交会话关闭请求的方式，并立即交付给PreRequestProcessor进行处理。
+     *
       * @param session
      */
     public void expire(Session session) {
@@ -1219,6 +1223,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         // 不接收任何packet，直到会话创建成功
         cnxn.disableRecv();
         long sessionId = connReq.getSessionId();
+        // 下面根据sessionId判断是重新打开session还是创建session
         if (sessionId == 0) {
             // 创建会话
             long id = createSession(cnxn, passwd, sessionTimeout);

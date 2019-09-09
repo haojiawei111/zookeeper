@@ -48,14 +48,17 @@ import org.slf4j.LoggerFactory;
 public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         SessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(SessionTrackerImpl.class);
+
     // session都存放在一个sessionById的map里面
-    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById =
-        new ConcurrentHashMap<Long, SessionImpl>();
+    protected final ConcurrentHashMap<Long, SessionImpl> sessionsById = new ConcurrentHashMap<Long, SessionImpl>();
 
     private final ExpiryQueue<SessionImpl> sessionExpiryQueue;
 
+    // key是sessionId,value是该会话的超时周期(不是时间点)
     private final ConcurrentMap<Long, Integer> sessionsWithTimeout;
+    // 一下个会话的id
     private final AtomicLong nextSessionId = new AtomicLong();
+
 
     public static class SessionImpl implements Session {
         SessionImpl(long sessionId, int timeout) {
@@ -64,9 +67,9 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
             isClosing = false;
         }
 
-        final long sessionId;
-        final int timeout;
-        boolean isClosing;
+        final long sessionId;//会话id，全局唯一
+        final int timeout;//会话超时时间
+        boolean isClosing;//是否被关闭,如果关闭则不再处理该会话的新请求
 
         Object owner;
 
@@ -79,15 +82,23 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         }
     }
 
+
+
     /**
      * Generates an initial sessionId. High order byte is serverId, next 5
      * 5 bytes are from timestamp, and low order 2 bytes are 0s.
+     * 生成初始sessionId。高位字节是serverId，接下来是5
+     * 5个字节来自时间戳，低位2个字节是0。
+     *
+     *  会话id要保证全局唯一，算法：
+     *  该算法的高8位确定了所在机器，后56位使用当前时间的毫秒表示进行随机。
      */
     public static long initializeNextSession(long id) {
         long nextSid;
         nextSid = (Time.currentElapsedTime() << 24) >>> 8;
         nextSid =  nextSid | (id <<56);
         if (nextSid == EphemeralType.CONTAINER_EPHEMERAL_OWNER) {
+            // 这是一个不太可能的边缘情况，但检查它以防万一
             ++nextSid;  // this is an unlikely edge case, but check it just in case
         }
         return nextSid;
@@ -149,15 +160,20 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
     public void run() {
         try {
             while (running) {
+                // 如果waitTime大于0，就sleep waitTime
                 long waitTime = sessionExpiryQueue.getWaitTime();
                 if (waitTime > 0) {
                     Thread.sleep(waitTime);
                     continue;
                 }
-
+                // 取出超时的会话
                 for (SessionImpl s : sessionExpiryQueue.poll()) {
                     ServerMetrics.getMetrics().STALE_SESSIONS_EXPIRED.add(1);
+                    //标记关闭
+                    // 由于会话清理过程需要一段时间，为了保证在此期间不再处理来自该客户端的请求，
+                    // SessionTracker会首先将该会话的isClosing标记为true，这样在会话清理期间接收到该客户端的心情求也无法继续处理了。
                     setSessionClosing(s.sessionId);
+                    //发起会话关闭请求
                     expirer.expire(s);
                 }
             }
@@ -167,6 +183,14 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         LOG.info("SessionTrackerImpl exited loop!");
     }
 
+    // 会话激活
+    // 会了保持客户端会话的有效性，客户端会在会话超时时间过期范围内向服务端发送PING请求来保持会话的有效性（心跳检测）。
+    // 同时，服务端需要不断地接收来自客户端的心跳检测，并且需要重新激活对应的客户端会话，这个重新激活过程称为TouchSession。
+    // 会话激活不仅能够使服务端检测到对应客户端的存货性，同时也能让客户端自己保持连接状态,
+    //
+    // client什么时候会发出激活请求
+    //    客户端向服务端发送请求，包括读写请求，就会触发会话激活。
+    //    客户端发现在sessionTimeout/3时间内尚未和服务端进行任何通信，那么就会主动发起PING请求，服务端收到该请求后，就会触发会话激活。
     synchronized public boolean touchSession(long sessionId, int timeout) {
         SessionImpl s = sessionsById.get(sessionId);
 

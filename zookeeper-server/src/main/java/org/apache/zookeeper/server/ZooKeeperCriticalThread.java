@@ -32,7 +32,7 @@ public class ZooKeeperCriticalThread extends ZooKeeperThread {
 
     public ZooKeeperCriticalThread(String threadName, ZooKeeperServerListener listener) {
         super(threadName);
-        this.listener = listener;
+        this.listener = listener;//设置监听器实例
     }
 
     /**
@@ -45,9 +45,9 @@ public class ZooKeeperCriticalThread extends ZooKeeperThread {
      *            - exception object
      */
     @Override
-    protected void handleException(String threadName, Throwable e) {
+    protected void handleException(String threadName, Throwable e) {//处理异常
         LOG.error("Severe unrecoverable error, from thread : {}", threadName, e);
         listener.notifyStopping(threadName, ExitCode.UNEXPECTED_ERROR.getValue());
-        ServerMetrics.getMetrics().UNRECOVERABLE_ERROR_COUNT.add(1);
+        ServerMetrics.getMetrics().UNRECOVERABLE_ERROR_COUNT.add(1);//观察者模式，调用监听器的对应逻辑
     }
 }

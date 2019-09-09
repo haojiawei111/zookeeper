@@ -616,18 +616,27 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // this request is the last of the session so it should be ok
                 //zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 long startTime =  Time.currentElapsedTime();
+                // 获取sessionId对应的临时节点的路径列表
                 Set<String> es = zks.getZKDatabase()
                         .getEphemerals(request.sessionId);
+                // outstandingChanges理解成zk serve的事务变更队列,事务还没有完成，尚未同步到内存数据库中的一个队列，表示变更记录
                 synchronized (zks.outstandingChanges) {
+                    //遍历 zk serve的事务变更队列,这些事务处理尚未完成，没有应用到内存数据库中
                     for (ChangeRecord c : zks.outstandingChanges) {
+                        //如果当前变更记录没有状态信息(删除时才会出现，参照上面处理delete时的ChangeRecord构造参数)
                         if (c.stat == null) {
                             // Doing a delete
+                            // 避免多次删除
                             es.remove(c.path);
+                            //如果变更节点是临时的，且源于当前sessionId(只有创建和修改时，stat不会为null)
                         } else if (c.stat.getEphemeralOwner() == request.sessionId) {
+                            //添加记录，最终要将添加或者修改的record再删除掉
                             es.add(c.path);
                         }
                     }
-                    for (String path2Delete : es) {
+                    for (String path2Delete : es) {//添加节点变更事务,将es中所有路径的临时节点都删掉
+                        // 完成该会话相关的临时节点收集后，Zookeeper会逐个将这些临时节点转换成"节点删除"请求，并放入事务变更队列outstandingChanges中。
+                        // FinalRequestProcessor会触发内存数据库，删除该会话对应的所有临时节点
                         addChangeRecord(new ChangeRecord(request.getHdr().getZxid(), path2Delete, null, 0, null));
                     }
 

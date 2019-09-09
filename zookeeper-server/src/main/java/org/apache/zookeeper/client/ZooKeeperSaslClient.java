@@ -421,7 +421,7 @@ public class ZooKeeperSaslClient {
             saslState = SaslState.INTERMEDIATE;
         }
     }
-
+    // 是否在验证sasl
     public boolean clientTunneledAuthenticationInProgress() {
     	if (!isSASLConfigured) {
     	    return false;

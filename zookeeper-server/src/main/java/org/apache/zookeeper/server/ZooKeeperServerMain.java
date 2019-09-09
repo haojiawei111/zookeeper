@@ -104,6 +104,8 @@ public class ZooKeeperServerMain {
 		}
 		// 解析配置文件 ServerConfig
 		ServerConfig config = new ServerConfig();
+		//只有一个参数：表示为一个配置文件地址
+		//有2~4个参数：分别表示端口、dataDir、tickTime、maxClientCnxns；
 		if (args.length == 1) {
 			config.parse(args[0]);
 		} else {
