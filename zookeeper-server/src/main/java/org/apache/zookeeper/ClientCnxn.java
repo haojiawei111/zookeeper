@@ -1023,6 +1023,7 @@ public class ClientCnxn {
 
         /**
          * Setup session, previous watches, authentication.
+         * 设置会话，previous watches，身份验证。
          */
         void primeConnection() throws IOException {
             LOG.info("Socket connection established, initiating session, client: {}, server: {}",

@@ -45,16 +45,16 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     private final Selector selector = Selector.open();
 
     private SelectionKey sockKey;
-
+    // 获取本地地址
     private SocketAddress localSocketAddress;
-
+    // 获取远端地址
     private SocketAddress remoteSocketAddress;
 
     ClientCnxnSocketNIO(ZKClientConfig clientConfig) throws IOException {
         this.clientConfig = clientConfig;
         initProperties();
     }
-
+    // 这个只是说SelectionKey有没有初始化，来标示，并不是真正的Connected
     @Override
     boolean isConnected() {
         return sockKey != null;
@@ -166,6 +166,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             return null;
         }
         // If we've already starting sending the first packet, we better finish
+        //如果有要发送的 或者 没有在处理sasl的权限
         if (outgoingQueue.getFirst().bb != null || !tunneledAuthInProgres) {
             return outgoingQueue.getFirst();
         }
@@ -177,7 +178,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         Iterator<Packet> iter = outgoingQueue.iterator();
         while (iter.hasNext()) {
             Packet p = iter.next();
-            if (p.requestHeader == null) {
+            if (p.requestHeader == null) { //如果在处理sasl的权限，那么只有requestHeader为null的Packet可以被发送
                 // We've found the priming-packet. Move it to the beginning of the queue.
                 iter.remove();
                 outgoingQueue.addFirst(p);
@@ -191,6 +192,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         return null;
     }
 
+    // socketChannel关闭，SelectionKey置空
     @Override
     void cleanup() {
         if (sockKey != null) {
@@ -235,7 +237,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         }
         sockKey = null;
     }
- 
+    //  	selector关闭
     @Override
     void close() {
         try {
@@ -340,7 +342,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     void onClosing() {
         wakeupCnxn();
     }
-
+    // 唤醒selector
     private synchronized void wakeupCnxn() {
         selector.wakeup();
     }
@@ -400,21 +402,21 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     void saslCompleted() {
         enableWrite();
     }
-
+    // 开启写
     synchronized void enableWrite() {
         int i = sockKey.interestOps();
         if ((i & SelectionKey.OP_WRITE) == 0) {
             sockKey.interestOps(i | SelectionKey.OP_WRITE);
         }
     }
-
+    // 禁止写
     private synchronized void disableWrite() {
         int i = sockKey.interestOps();
         if ((i & SelectionKey.OP_WRITE) != 0) {
             sockKey.interestOps(i & (~SelectionKey.OP_WRITE));
         }
     }
-
+    // 开启读
     synchronized private void enableRead() {
         int i = sockKey.interestOps();
         if ((i & SelectionKey.OP_READ) == 0) {
@@ -430,7 +432,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     Selector getSelector() {
         return selector;
     }
-
+    //  	发送packet
     @Override
     void sendPacket(Packet p) throws IOException {
         SocketChannel sock = (SocketChannel) sockKey.channel();
