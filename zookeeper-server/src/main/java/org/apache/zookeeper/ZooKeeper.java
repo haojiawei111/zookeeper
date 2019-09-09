@@ -583,11 +583,12 @@ public class ZooKeeper implements AutoCloseable {
     /**
      * Register a watcher for a particular path.为特定路径注册观察者。
      * 抽象类，用作watch注册
+     * client中管理watch注册的类
      */
     public abstract class WatchRegistration {
-        // Watcher
+        // 注册的watcher
         private Watcher watcher;
-        // 客户端路径
+        // 监听的znode path
         private String clientPath;
         public WatchRegistration(Watcher watcher, String clientPath)
         {
@@ -595,7 +596,7 @@ public class ZooKeeper implements AutoCloseable {
             this.clientPath = clientPath;
         }
 
-        // 获取Path到Watchers集合的键值对，由子类实现
+        // 根据response的resultCode来获取所有注册的path以及对应的watcher集合
         abstract protected Map<String, Set<Watcher>> getWatches(int rc);
 
         /**
@@ -628,7 +629,7 @@ public class ZooKeeper implements AutoCloseable {
          * watch on the node
          * @return true if the watch should be added, otw false
          */
-        // 判断是否需要添加，判断rc是否为0,如果是0就可以注册，这是默认的策略，子类有可能会覆盖此方法
+        // 根据resultCode判断是否需要添加，判断rc是否为0,如果是0就可以注册，这是默认的策略，子类有可能会覆盖此方法
         protected boolean shouldAddWatch(int rc) {
             return rc == 0;
         }
@@ -942,9 +943,10 @@ public class ZooKeeper implements AutoCloseable {
             clientConfig = new ZKClientConfig();
         }
         this.clientConfig = clientConfig;
+        // ZKWatchManager
         watchManager = defaultWatchManager();
         // 初始化默认Watcher
-        watchManager.defaultWatcher = watcher;
+        watchManager.defaultWatcher = watcher;//设置会话默认Watcher
         // 对传入的connectString进行解析
         // connectString 类似于127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002未指定根空间的字符串
         // 或者是127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002/app/a指定根空间的字符串,根为/app/a
@@ -1465,6 +1467,8 @@ public class ZooKeeper implements AutoCloseable {
     /**
      * Specify the default watcher for the connection (overrides the one
      * specified during construction).
+     * 注册默认watcher
+     * client构造Zookeeper对象时传递，会记录在ZooKeeper.ZKWatchManager#defaultWatcher中
      *
      * @param watcher
      */
@@ -2319,6 +2323,7 @@ public class ZooKeeper implements AutoCloseable {
 
     /**
      * The asynchronous version of getData.
+     * getData的异步版本
      *
      * @see #getData(String, Watcher, Stat)
      */
@@ -2330,20 +2335,22 @@ public class ZooKeeper implements AutoCloseable {
 
         // the watch contains the un-chroot path
         WatchRegistration wcb = null;
-        if (watcher != null) {
-            wcb = new DataWatchRegistration(watcher, clientPath);
+        if (watcher != null) {//如果有watcher，就注册
+            wcb = new DataWatchRegistration(watcher, clientPath);//生成一个DataWatchRegistration，即Data的watch的注册
         }
 
         final String serverPath = prependChroot(clientPath);
 
-        RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.getData);
+        RequestHeader h = new RequestHeader();//生成请求头
+        h.setType(ZooDefs.OpCode.getData);//设置请求类型为getData
+
         GetDataRequest request = new GetDataRequest();
         request.setPath(serverPath);
-        request.setWatch(watcher != null);
+        request.setWatch(watcher != null);//设置标志位,是否有函数watch
+
         GetDataResponse response = new GetDataResponse();
         cnxn.queuePacket(h, new ReplyHeader(), request, response, cb,
-                clientPath, serverPath, ctx, wcb);
+                clientPath, serverPath, ctx, wcb);//client端提交请求
     }
 
     /**

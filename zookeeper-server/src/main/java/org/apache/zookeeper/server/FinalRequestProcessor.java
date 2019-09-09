@@ -367,17 +367,20 @@ public class FinalRequestProcessor implements RequestProcessor {
                 lastOp = "GETD";
                 GetDataRequest getDataRequest = new GetDataRequest();
                 ByteBufferInputStream.byteBuffer2Record(request.request,
-                        getDataRequest);
+                        getDataRequest);//反序列化出getDataRequest
                 path = getDataRequest.getPath();
                 DataNode n = zks.getZKDatabase().getNode(path);
                 if (n == null) {
                     throw new KeeperException.NoNodeException();
                 }
+                //验证path对应的node是否存在  验证ACL权限
                 PrepRequestProcessor.checkACL(zks, request.cnxn, zks.getZKDatabase().aclForNode(n),
                         ZooDefs.Perms.READ,
                         request.authInfo, path, null);
                 Stat stat = new Stat();
                 byte b[] = zks.getZKDatabase().getData(path, stat,
+                        // TODO:如果有watch标志位，Watcher就传cnxn
+                        // 这个Watcher的实现类记录了client和server的连接，回调的时候，可以直接发送response告诉client，有事件触发了
                         getDataRequest.getWatch() ? cnxn : null);
                 rsp = new GetDataResponse(b, stat);
                 break;

@@ -29,6 +29,12 @@ import java.util.List;
 import static org.apache.zookeeper.common.StringUtils.split;
 
 /**
+ *
+ *  ConnectStringParser
+ *     解析服务器地址
+ *     解析chrootPath
+
+ *
  * A parser for ZooKeeper Client connect strings.
  * 
  * This class is not meant to be seen or used outside of ZooKeeper itself.
@@ -39,10 +45,17 @@ import static org.apache.zookeeper.common.StringUtils.split;
  * @see org.apache.zookeeper.ZooKeeper
  */
 public final class ConnectStringParser {
+    //默认端口
     private static final int DEFAULT_PORT = 2181;
 
+    //客户端命名空间客
+    // 户端可以通过在connectString中添加后缀的方式来设置Chroot，如下所示：
+    //  192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181/apps/X
+    //这个client的chrootPath就是/apps/X
+    //将这样一个connectString传入客户端的ConnectStringParser后就能够解析出Chroot并保存在chrootPath属性中。
     private final String chrootPath;
 
+    //地址列表
     private final ArrayList<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>();
 
     /**
@@ -72,7 +85,7 @@ public final class ConnectStringParser {
         for (String host : hostsList) {
             int port = DEFAULT_PORT;
             try {
-                String[] hostAndPort = ConfigUtils.getHostAndPort(host);
+                String[] hostAndPort = ConfigUtils.getHostAndPort(host);//端口
                 host = hostAndPort[0];
                 if (hostAndPort.length == 2) {
                     port = Integer.parseInt(hostAndPort[1]);

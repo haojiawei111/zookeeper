@@ -71,33 +71,34 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         if (sock == null) {
             throw new IOException("Socket is null!");
         }
-        if (sockKey.isReadable()) {
-            int rc = sock.read(incomingBuffer);
+        if (sockKey.isReadable()) {//若读就绪
+            int rc = sock.read(incomingBuffer);//读出len
             if (rc < 0) {
                 throw new EndOfStreamException(
                         "Unable to read additional data from server sessionid 0x"
                                 + Long.toHexString(sessionId)
                                 + ", likely server has closed socket");
             }
-            if (!incomingBuffer.hasRemaining()) {
-                incomingBuffer.flip();
+            if (!incomingBuffer.hasRemaining()) {//如果还有数据，没有读满
+                incomingBuffer.flip();//切换到读模式
                 if (incomingBuffer == lenBuffer) {
-                    recvCount.getAndIncrement();
-                    readLength();
-                } else if (!initialized) {
-                    readConnectResult();
-                    enableRead();
+                    recvCount.getAndIncrement();//接收次数+1
+                    readLength();//获取len并给incomingBuffer分配对应空间
+                } else if (!initialized) {//如果client和server的连接还没有初始化
+                    readConnectResult();//读取connect 回复
+                    enableRead();//启用读
                     if (findSendablePacket(outgoingQueue,
                             sendThread.tunnelAuthInProgress()) != null) {
                         // Since SASL authentication has completed (if client is configured to do so),
                         // outgoing packets waiting in the outgoingQueue can now be sent.
-                        enableWrite();
+                        enableWrite();//允许写，因为有要发送的packet
                     }
                     lenBuffer.clear();
-                    incomingBuffer = lenBuffer;
+                    incomingBuffer = lenBuffer;//还原incomingBuffer
                     updateLastHeard();
-                    initialized = true;
+                    initialized = true;//client和server连接初始化完成
                 } else {
+                    //如果已连接，并且已经给incomingBuffer分配了对应len的空间
                     sendThread.readResponse(incomingBuffer);
                     lenBuffer.clear();
                     incomingBuffer = lenBuffer;
@@ -105,7 +106,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 }
             }
         }
-        if (sockKey.isWritable()) {
+        if (sockKey.isWritable()) {//若写就绪
+            //找到可以发送的Packet
             Packet p = findSendablePacket(outgoingQueue,
                     sendThread.tunnelAuthInProgress());
 
@@ -118,16 +120,17 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                             (p.requestHeader.getType() != OpCode.auth)) {
                         p.requestHeader.setXid(cnxn.getXid());
                     }
-                    p.createBB();
+                    p.createBB();//如果packet还没有生成byteBuffer，那就生成byteBuffer
                 }
                 sock.write(p.bb);
                 if (!p.bb.hasRemaining()) {
                     sentCount.getAndIncrement();
-                    outgoingQueue.removeFirstOccurrence(p);
+                    outgoingQueue.removeFirstOccurrence(p);//从待发送队列中取出该packet
                     if (p.requestHeader != null
                             && p.requestHeader.getType() != OpCode.ping
                             && p.requestHeader.getType() != OpCode.auth) {
                         synchronized (pendingQueue) {
+                            //加入待回复的队列
                             pendingQueue.add(p);
                         }
                     }
@@ -139,7 +142,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 // from within ZooKeeperSaslClient (if client is configured
                 // to attempt SASL authentication), or in either doIO() or
                 // in doTransport() if not.
-                disableWrite();
+                disableWrite();//如果没有要发的，就禁止写
             } else if (!initialized && p != null && !p.bb.hasRemaining()) {
                 // On initial connection, write the complete connect request
                 // packet, but then disable further writes until after
@@ -158,8 +161,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         }
     }
 
-    private Packet findSendablePacket(LinkedBlockingDeque<Packet> outgoingQueue,
-                                      boolean tunneledAuthInProgres) {
+    private Packet findSendablePacket(LinkedBlockingDeque<Packet> outgoingQueue,boolean tunneledAuthInProgres) {
         if (outgoingQueue.isEmpty()) {
             return null;
         }
@@ -273,22 +275,26 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     throws IOException {
         sockKey = sock.register(selector, SelectionKey.OP_CONNECT);
         boolean immediateConnect = sock.connect(addr);
+        //如果立即建立了连接
         if (immediateConnect) {
+            //client把watches和authData等数据发过去，并更新SelectionKey为读写
             sendThread.primeConnection();
         }
     }
-    
+
+    //参数是某一个zk server的地址
     @Override
     void connect(InetSocketAddress addr) throws IOException {
         SocketChannel sock = createSock();
         try {
+            //注册SelectionKey到zk server
            registerAndConnect(sock, addr);
       } catch (IOException e) {
             LOG.error("Unable to open socket to " + addr);
             sock.close();
             throw e;
         }
-        initialized = false;
+        initialized = false;//还没有初始化,connect ok了但是还读到server的connect response
 
         /*
          * Reset incomingBuffer
@@ -338,7 +344,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     private synchronized void wakeupCnxn() {
         selector.wakeup();
     }
-    
+
+    // client和server交互的主要函数
     @Override
     void doTransport(int waitTimeOut, Queue<Packet> pendingQueue, ClientCnxn cnxn)
             throws IOException, InterruptedException {
@@ -350,26 +357,31 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         // Everything below and until we get back to the select is
         // non blocking, so time is effectively a constant. That is
         // Why we just have to do this once, here
+        // 更新时间
         updateNow();
         for (SelectionKey k : selected) {
             SocketChannel sc = ((SocketChannel) k.channel());
-            if ((k.readyOps() & SelectionKey.OP_CONNECT) != 0) {
-                if (sc.finishConnect()) {
-                    updateLastSendAndHeard();
+            if ((k.readyOps() & SelectionKey.OP_CONNECT) != 0) {//如果就绪的是connect事件，这个出现在registerAndConnect函数没有立即连接成功
+                if (sc.finishConnect()) {//如果次数完成了连接
+                    updateLastSendAndHeard();//更新时间
                     updateSocketAddresses();
+                    //client把watches和authData等数据发过去，并更新SelectionKey为读写
                     sendThread.primeConnection();
                 }
             } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
+                // TODO: 读写数据
                 doIO(pendingQueue, cnxn);
             }
         }
+        //如果zk的state是已连接
         if (sendThread.getZkState().isConnected()) {
+            //TODO:如果有可以发送的packet
             if (findSendablePacket(outgoingQueue,
                     sendThread.tunnelAuthInProgress()) != null) {
-                enableWrite();
+                enableWrite();//允许写
             }
         }
-        selected.clear();
+        selected.clear();//清空
     }
 
     //TODO should this be synchronized?

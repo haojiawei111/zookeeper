@@ -33,6 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 客户端将其保存在服务器地址列表管理器HostProvider中
+ *
+ *  HostProvider以及StaticHostProvider
+ *    地址列表管理以及随机打乱顺序
+ *    循环队列获取下一个服务器地址
+ *
  * Most simple HostProvider, resolves on every next() call.
  *
  * Please be aware that although this class doesn't do any DNS caching, there're multiple levels of caching already
@@ -46,19 +52,19 @@ public final class StaticHostProvider implements HostProvider {
         InetAddress[] getAllByName(String name) throws UnknownHostException;
     }
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(StaticHostProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StaticHostProvider.class);
 
-    private List<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>(
-            5);
+    private List<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>(5);
 
     private Random sourceOfRandomness;
-    private int lastIndex = -1;
 
-    private int currentIndex = -1;
+    private int lastIndex = -1;//记录循环队列中当前正在连接的服务器地址的下标
+
+    private int currentIndex = -1;//记录循环队列中当前遍历到的下标
 
     /**
      * The following fields are used to migrate clients during reconfiguration
+     * 以下字段用于在重新配置期间迁移客户端
      */
     private boolean reconfigMode = false;
 
@@ -136,6 +142,7 @@ public final class StaticHostProvider implements HostProvider {
             throw new IllegalArgumentException(
                     "A HostProvider may not be empty!");
         }
+        // 这里对serverAddresses进行shuffle，随机打乱
         this.serverAddresses = shuffle(serverAddresses);
         currentIndex = -1;
         lastIndex = -1;

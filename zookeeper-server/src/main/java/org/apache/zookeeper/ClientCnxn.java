@@ -102,6 +102,19 @@ import org.slf4j.MDC;
  * of available servers to connect to and "transparently" switches servers it is
  * connected to as needed.
  *
+ * ClientCnxn:
+ *   客户端核心线程，内部包含了SendThread和EventThread两个线程，
+ *   SendThread为I/O线程，主要负责Zookeeper客户端和服务器之间的网络I/O通信；
+ *   EventThread为事件线程，主要负责对服务端事件进行处理。
+ *
+ *ZooKeeper客户端首先会创建一个网络连接器ClientCnxn,用来管理客户端与服务器的网络交互。
+ *     另外，客户端在创建 ClientCnxn的同时还会初始化客户端两个核心队列outGoingQueue和pendingQueue,
+ *     分别作为客户端请求组发送队列和服务端 响应等待队列
+ *
+ *初始化SendThread和EventThread
+ *     客户端会创建两个核心网络线程SendThread和EventThread,前者用于管理客户端和服务端之间的所有网络I/O，后者则用于进行客户端的事件处理。
+ *     同时，客户端还会将ClientCnxnSocket分配给SendThread作为底层网络I/O处理器，并初始化EventThread的待处理事件队列waitingEvents，用于存放所有等待被客户端处理的事情。
+ *
  */
 @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public class ClientCnxn {
@@ -132,11 +145,16 @@ public class ClientCnxn {
 
     /**
      * These are the packets that have been sent and are waiting for a response.
+     * pendingQueue是已经从client发送，但是要等待server响应的packet队列
      */
     private final Queue<Packet> pendingQueue = new ArrayDeque<>();
 
     /**
-     * These are the packets that need to be sent.
+     *  outgoingQueue 是请求发送队列，是client存储需要被发送到server端的Packet队列
+     *
+     * queuePacket函数作为生产者
+     * ClientCnxn.SendThread作为消费者，run方法中调用ClientCnxnSocket#doTransport
+     *
      */
     private final LinkedBlockingDeque<Packet> outgoingQueue = new LinkedBlockingDeque<Packet>();
 
@@ -249,32 +267,47 @@ public class ClientCnxn {
 
     /**
      * This class allows us to pass the headers and the relevant records around.
+     *
+     * Packet是ClientCnxn内部定义的一个堆协议层的封装，用作Zookeeper中请求和响应的载体。
+     * Packet包含了
+     *       请求头（requestHeader）、
+     *       响应头（replyHeader）、
+     *       请求体（request）、
+     *       响应体（response）、
+     *       节点路径（clientPath/serverPath）、
+     *       注册的Watcher（watchRegistration）
+     *
+     * 并非Packet中所有的属性都在客户端与服务端之间进行网络传输，只会将requestHeader、request、readOnly三个属性序列化，
+     * 并生成可用于底层网络传输的ByteBuffer，其他属性都保存在客户端的上下文中，不会进行与服务端之间的网络传输。
+     *
+     *
      */
     static class Packet {
+        // 请求头
         RequestHeader requestHeader;
-
+        // 响应头
         ReplyHeader replyHeader;
-
+        // 请求体
         Record request;
-
+        // 响应体
         Record response;
-
+        //序列化之后的byteBuffer
         ByteBuffer bb;
 
         /** Client's view of the path (may differ due to chroot) **/
-        String clientPath;
+        String clientPath;//client节点路径，不含chrootPath
         /** Servers's view of the path (may differ due to chroot) **/
-        String serverPath;
+        String serverPath;//server节点路径,含chrootPath
 
-        boolean finished;
+        boolean finished;//是否结束(已经得到响应才能结束)
 
-        AsyncCallback cb;
+        AsyncCallback cb;//异步回调
 
-        Object ctx;
+        Object ctx;//上下文
 
-        WatchRegistration watchRegistration;
+        WatchRegistration watchRegistration;//注册的watcher
 
-        public boolean readOnly;
+        public boolean readOnly;//只读
 
         WatchDeregistration watchDeregistration;
 
@@ -304,14 +337,14 @@ public class ClientCnxn {
                 BinaryOutputArchive boa = BinaryOutputArchive.getArchive(baos);
                 boa.writeInt(-1, "len"); // We'll fill this in later
                 if (requestHeader != null) {
-                    requestHeader.serialize(boa, "header");
+                    requestHeader.serialize(boa, "header");//序列化请求头，包含xid和type
                 }
                 if (request instanceof ConnectRequest) {
                     request.serialize(boa, "connect");
                     // append "am-I-allowed-to-be-readonly" flag
                     boa.writeBool(readOnly, "readOnly");
                 } else if (request != null) {
-                    request.serialize(boa, "request");
+                    request.serialize(boa, "request");//序列化request(对于特定请求如GetDataRequest,包含了是否存在watcher的标志位)
                 }
                 baos.close();
                 this.bb = ByteBuffer.wrap(baos.toByteArray());
@@ -410,6 +443,8 @@ public class ClientCnxn {
         initRequestTimeout();
     }
 
+    // 启动SendThread和EventThread。
+    // SendThread首先会判断当前客户端的状态，进行一系列请理性工作，为客户端发送“会话创建”请求做准备。
     public void start() {
         sendThread.start();
         eventThread.start();
@@ -462,7 +497,9 @@ public class ClientCnxn {
         public void queueEvent(WatchedEvent event) {
             queueEvent(event, null);
         }
-
+        // 将WatchedEvent加入队列
+        // waitingEvents的消费在ClientCnxn.EventThread#run中
+        // 最终调用了ClientCnxn.EventThread#processEvent
         private void queueEvent(WatchedEvent event,
                 Set<Watcher> materializedWatchers) {
             if (event.getType() == EventType.None
@@ -535,8 +572,9 @@ public class ClientCnxn {
 
        private void processEvent(Object event) {
           try {
-              if (event instanceof WatcherSetEventPair) {
+              if (event instanceof WatcherSetEventPair) {//如果是通知事件
                   // each watcher will process the event
+                  //从WatcherSetEventPair这个wraper中取出watchers和event
                   WatcherSetEventPair pair = (WatcherSetEventPair) event;
                   for (Watcher watcher : pair.watchers) {
                       try {
@@ -871,17 +909,17 @@ public class ClientCnxn {
                 }
                 return;
             }
-            if (replyHdr.getXid() == -1) {
+            if (replyHdr.getXid() == -1) {//TODO:-1代表通知类型 即WatcherEvent
                 // -1 means notification
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got notification sessionid:0x"
                         + Long.toHexString(sessionId));
                 }
                 WatcherEvent event = new WatcherEvent();
-                event.deserialize(bbia, "response");
+                event.deserialize(bbia, "response");//反序列化WatcherEvent
 
                 // convert from a server path to a client path
-                if (chrootPath != null) {
+                if (chrootPath != null) {//把serverPath转化成clientPath
                     String serverPath = event.getPath();
                     if(serverPath.compareTo(chrootPath)==0)
                         event.setPath("/");
@@ -894,13 +932,13 @@ public class ClientCnxn {
                     }
                 }
 
-                WatchedEvent we = new WatchedEvent(event);
+                WatchedEvent we = new WatchedEvent(event);//WatcherEvent还原成WatchedEvent
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got " + we + " for sessionid 0x"
                             + Long.toHexString(sessionId));
                 }
 
-                eventThread.queueEvent( we );
+                eventThread.queueEvent( we );//加入队列
                 return;
             }
 
@@ -1145,6 +1183,8 @@ public class ClientCnxn {
 
         private static final String RETRY_CONN_MSG =
             ", closing socket connection and attempting reconnect";
+
+        // 读取回复
         @Override
         public void run() {
             clientCnxnSocket.introduce(this, sessionId, outgoingQueue);
@@ -1562,6 +1602,11 @@ public class ClientCnxn {
         // 创建新响应头
         ReplyHeader r = new ReplyHeader();
         // 生成Packet包
+        // 在 ZooKeeper 中，Packet 是一个最小的通信协议单元，即数据包。
+        //Pakcet 用于进行客户端与服务端之间的网络传输，任何需要传输的对象都需要包装成一个 Packet 对象。
+        //在 ClientCnxn 中 WatchRegistration 也会被封装到 Packet 中,调用 queuePacket放入outgoingQueue即发送队列中(生产packet)
+        //然后SendThread 线程调用doTransport方法,从outgoingQueue中消费Packet,客户端发送
+
         Packet packet = queuePacket(h, r, request, response, null, null, null,
                 null, watchRegistration, watchDeregistration);
         synchronized (packet) {// 同步

@@ -24,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 
 /**
+ * 客户端将其保存在服务器地址列表管理器HostProvider中
+ *
  * A set of hosts a ZooKeeper client should connect to.
  * 
  * Classes implementing this interface must guarantee the following:
@@ -45,16 +47,20 @@ import java.util.Collection;
  */
 @InterfaceAudience.Public
 public interface HostProvider {
+    // 返回当前服务器地址的个数
     public int size();
 
     /**
      * The next host to try to connect to.
      * 
      * For a spinDelay of 0 there should be no wait.
+     *
+     * 就是说如果所有的hosts都试过了都没有连上(此时出现currentIndex == lastIndex)，那么就sleep一段时间再说
      * 
      * @param spinDelay
      *            Milliseconds to wait if all hosts have been tried once.
      */
+    // 返回一个zk服务器地址让客户端进行连接
     public InetSocketAddress next(long spinDelay);
 
     /**
@@ -62,6 +68,7 @@ public interface HostProvider {
      * 
      * The HostProvider may use this notification to reset it's inner state.
      */
+    // 回调方法，若client和server创建连接成功，则用这个方法通知hostProvider
     public void onConnected();
 
     /**

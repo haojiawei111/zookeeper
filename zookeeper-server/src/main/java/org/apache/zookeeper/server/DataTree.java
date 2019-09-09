@@ -87,6 +87,22 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * 仅在序列化到磁盘时遍历树。
  *
+ * 属性
+ *   内部类
+ *     ProcessTxnResult
+ *     Counts
+ *   函数
+ *     构造函数
+ *     统计信息相关
+ *     复制状态信息
+ *     管理配额
+ *     node的增删改查
+ *     处理请求
+ *     序列化与反序列化
+ *     dump相关
+ *     其他
+ *
+ *
  */
 public class DataTree {
     private static final Logger LOG = LoggerFactory.getLogger(DataTree.class);
@@ -98,6 +114,9 @@ public class DataTree {
     // 存储着所有DataNode，Key为DataNode的绝对路径Path，Value为DataNode。
     private final ConcurrentHashMap<String, DataNode> nodes = new ConcurrentHashMap<String, DataNode>();
 
+    // IWatchManager 负责 Watcher 事件的触发，它是一个统称
+    // 在服务端 DataTree 会托管两个 IWatchManager，分别是 dataWatches 和 childWatches
+    // 分别对应数据变更 Watcher 和子节点变更 Watcher。
     private IWatchManager dataWatches; //内容监听器
 
     private IWatchManager childWatches; //子节点监听器
@@ -176,6 +195,8 @@ public class DataTree {
     private final ReferenceCountedACLCache aclCache = new ReferenceCountedACLCache();
 
     /**
+     * 根据sessionId得到它创建的临时path列表
+     *
      * @param sessionId
      * @return 此sessionId的临时节点
      *         已经做的复制，改变返回的数组不影响其他
@@ -231,6 +252,7 @@ public class DataTree {
     /**
      * Get the size of the nodes based on path and data length.
      * 根据路径和数据获取所有节点的总大小。
+     * 获取一个所有path存储内容的大小总和
      *
      * @return size of the data
      */
@@ -278,6 +300,7 @@ public class DataTree {
      */
     private final DataNode quotaDataNode = new DataNode(new byte[0], -1L, new StatPersisted());
 
+    // root,procDataNode，quotaDataNode记录在map中
     public DataTree() {
         /* Rather than fight it, let root have an alias */
         // root有两个key,一个是"",另一个是"/"
@@ -330,6 +353,7 @@ public class DataTree {
     /**
      * is the path one of the special paths owned by zookeeper.
      *
+     * 是否是特殊路径
      * 判断是否的 "/"  "/zookeeper"  "/zookeeper/quota"  "/zookeeper/config" 其中之一
      * 如果是返回true，否则false
      *
@@ -374,6 +398,7 @@ public class DataTree {
 
     /**
      * update the count/count of bytes of this stat datanode
+     *
      *
      * 更新此stat datanode的计数/字节数
      *
@@ -755,12 +780,12 @@ public class DataTree {
             n.copyStat(stat);
             if (watcher != null) {
                 // 添加监听
-                dataWatches.addWatch(path, watcher);
+                dataWatches.addWatch(path, watcher);//注册watcher到dataWatches
             }
             data = n.data;
         }
         updateReadStat(path, data == null ? 0 : data.length);
-        return data;
+        return data;//返回byte[]
     }
 
     public Stat statNode(String path, Watcher watcher)
@@ -851,11 +876,12 @@ public class DataTree {
             return aclCache.convertLong(node.acl);
         }
     }
-
+    // 获取acl cache的大小
     public int aclCacheSize() {
         return aclCache.size();
     }
 
+    //TODO:记录处理Txn的结果
     static public class ProcessTxnResult {
         public long clientId;
 
@@ -904,8 +930,13 @@ public class DataTree {
     public volatile long lastProcessedZxid = 0;
 
     /**
-     * 核心方法
+     * TODO:核心方法
      * 执行请求并返回ProcessTxnResult
+     *
+     * processTxn函数，主要是根据不同的请求头，区分请求类型，是create还是set等等
+     * 然后根据处理结果返回ProcessTxnResult
+     *
+     *
      * @param header
      * @param txn
      * @return
@@ -1161,6 +1192,12 @@ public class DataTree {
         return rc;
     }
 
+    /**
+     * 把一个临时会话的session给kill掉
+     *
+     * @param session
+     * @param zxid
+     */
     void killSession(long session, long zxid) {
         // the list is already removed from the ephemerals
         // so we do not have to worry about synchronizing on
@@ -1193,6 +1230,7 @@ public class DataTree {
     /**
      * a encapsultaing class for return value
      * 一个返回值的包装类
+     * 用来记录StatsTrack类时(一个节点下面的bytes大小和count数量),实际统计过程中用到的结构体一样的类
      */
     private static class Counts {
         long bytes;
@@ -1255,6 +1293,8 @@ public class DataTree {
     /**
      * this method traverses the quota path and update the path trie and sets
      *
+     * 遍历quota下的path,然后统计对应实际用到的bytes大小和count数量
+     *
      * @param path
      */
     private void traverseNode(String path) {
@@ -1275,7 +1315,7 @@ public class DataTree {
                 // the count and the bytes
                 String realPath = path.substring(Quotas.quotaZookeeper
                         .length(), path.indexOf(endString));
-                updateQuotaForPath(realPath);
+                updateQuotaForPath(realPath);//统计对应实际用到的bytes大小和count数量
                 this.pTrie.addPath(realPath);
             }
             return;
@@ -1524,11 +1564,13 @@ public class DataTree {
         return ephemeralsCopy;
     }
 
+    // 清除一个watcher
     public void removeCnxn(Watcher watcher) {
         dataWatches.removeWatcher(watcher);
         childWatches.removeWatcher(watcher);
     }
 
+    // 设置watcher
     public void setWatches(long relativeZxid, List<String> dataWatches,
             List<String> existWatches, List<String> childWatches,
             Watcher watcher) {
@@ -1573,6 +1615,9 @@ public class DataTree {
       * values passed as arguments. The values are modified only if newCversion
       * is greater than the current Cversion. A NoNodeException is thrown if
       * a znode for the specified path is not found.
+      * 此方法将指定节点的Cversion和Pzxid设置为作为参数传递的值。
+      * 仅当newCversion大于当前Cversion时才修改这些值。
+      * 如果找不到指定路径的znode，则抛出NoNodeException。
       *
       * @param path
       *     Full path to the znode whose Cversion needs to be modified.
@@ -1584,6 +1629,7 @@ public class DataTree {
       * @throws KeeperException.NoNodeException
       *     If znode not found.
       **/
+    // 设置新的Cversion和parent的zxid,确保path参数是parent的path
     public void setCversionPzxid(String path, int newCversion, long zxid)
         throws KeeperException.NoNodeException {
         if (path.endsWith("/")) {

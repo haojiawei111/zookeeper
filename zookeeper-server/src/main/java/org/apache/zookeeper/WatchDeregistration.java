@@ -48,6 +48,7 @@ public class WatchDeregistration {
 
     /**
      * Unregistering watcher that was added on path.
+     * 取消注册路径中添加的观察者。
      * 
      * @param rc
      *            the result code of the operation that attempted to remove
