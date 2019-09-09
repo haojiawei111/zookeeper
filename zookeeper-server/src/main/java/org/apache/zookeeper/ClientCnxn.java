@@ -476,24 +476,36 @@ public class ClientCnxn {
         return name + suffix;
     }
 
+    //   EventThread属性
+    //    主要waitingEvents 临时存放需要被触发的Obj，包含Watcher和AsyncCallBack
+    //  EventThread方法
+    //    queueEvent方法把WatchedEvent加入到waitingEvents队列
+    //    queuePacket方法加入Packet，把AsyncCallBack事件加入到waitingEvents队列
+    //    queueEventOfDeath标记线程即将go die
+    //    run方法不断地从从waitingEvents队列取出WatchedEvent和Packet
+    //    processEvent方法对WatchedEvent和Packet两种事件进行处理
     class EventThread extends ZooKeeperThread {
-        private final LinkedBlockingQueue<Object> waitingEvents =
-            new LinkedBlockingQueue<Object>();
+
+        // EventThread中的watingEvents队列用于临时存放那些需要被触发的Object，包括客户端注册的Watcher和异步接口中注册的回调器AsyncCallback。
+        private final LinkedBlockingQueue<Object> waitingEvents = new LinkedBlockingQueue<Object>();
 
         /** This is really the queued session state until the event
          * thread actually processes the event and hands it to the watcher.
          * But for all intents and purposes this is the state.
+         * 这实际上是排队的会话状态，直到事件线程实际处理事件并将其交给观察者。
+         * 但就所有意图和目的而言，这就是国家。
          */
         private volatile KeeperState sessionState = KeeperState.Disconnected;
 
-       private volatile boolean wasKilled = false;
-       private volatile boolean isRunning = false;
+       private volatile boolean wasKilled = false;//如果需要停止(并没有真的kill)
+       private volatile boolean isRunning = false;//线程是否在运行(waitingEvents是否在工作)
 
         EventThread() {
             super(makeThreadName("-EventThread"));
             setDaemon(true);
         }
 
+        // //将WatchedEvent加入队列
         public void queueEvent(WatchedEvent event) {
             queueEvent(event, null);
         }
@@ -516,25 +528,28 @@ public class ClientCnxn {
                 watchers = new HashSet<Watcher>();
                 watchers.addAll(materializedWatchers);
             }
+            //用WatcherSetEventPair封装watchers和watchedEvent
             WatcherSetEventPair pair = new WatcherSetEventPair(watchers, event);
             // queue the pair (watch set & event) for later processing
+            //加入队列
             waitingEvents.add(pair);
         }
+
 
         public void queueCallback(AsyncCallback cb, int rc, String path,
                 Object ctx) {
             waitingEvents.add(new LocalCallback(cb, rc, path, ctx));
         }
-
+        // 处理异步回调的Packet,根据标示位判断是异步还是同步处理,当Packet有callback的时候调用
        @SuppressFBWarnings("JLM_JSR166_UTILCONCURRENT_MONITORENTER")
        public void queuePacket(Packet packet) {
-          if (wasKilled) {
+          if (wasKilled) {//如果kill掉了
              synchronized (waitingEvents) {
-                if (isRunning) waitingEvents.add(packet);
-                else processEvent(packet);
+                if (isRunning) waitingEvents.add(packet);//线程在运行，则加入临时队列
+                else processEvent(packet);//同步处理Event
              }
           } else {
-             waitingEvents.add(packet);
+             waitingEvents.add(packet);//加入临时队列
           }
        }
 
@@ -542,22 +557,23 @@ public class ClientCnxn {
             waitingEvents.add(eventOfDeath);
         }
 
+        // EventThread会不断地从watingEvents中取出Object，识别具体类型（Watcher或AsyncCallback），并分别调用process和processResult接口方法来实现对事件的触发和回调。
         @Override
         @SuppressFBWarnings("JLM_JSR166_UTILCONCURRENT_MONITORENTER")
         public void run() {
            try {
               isRunning = true;
               while (true) {
-                 Object event = waitingEvents.take();
+                 Object event = waitingEvents.take();//消费waitingEvents
                  if (event == eventOfDeath) {
-                    wasKilled = true;
+                    wasKilled = true;//遇到了eventOfDeath就设置wasKilled表示需要被停掉(但是没有真正的停)
                  } else {
-                    processEvent(event);
+                    processEvent(event);//处理event
                  }
                  if (wasKilled)
                     synchronized (waitingEvents) {
-                       if (waitingEvents.isEmpty()) {
-                          isRunning = false;
+                       if (waitingEvents.isEmpty()) {//当需要被停掉，且临时队列处理完了
+                          isRunning = false;//跳出while，结束线程
                           break;
                        }
                     }
@@ -583,7 +599,7 @@ public class ClientCnxn {
                           LOG.error("Error while calling watcher ", t);
                       }
                   }
-                } else if (event instanceof LocalCallback) {
+                } else if (event instanceof LocalCallback) { // 本地回调？？？不知道干嘛的
                     LocalCallback lcb = (LocalCallback) event;
                     if (lcb.cb instanceof StatCallback) {
                         ((StatCallback) lcb.cb).processResult(lcb.rc, lcb.path,
@@ -613,7 +629,7 @@ public class ClientCnxn {
                         ((VoidCallback) lcb.cb).processResult(lcb.rc, lcb.path,
                                 lcb.ctx);
                     }
-                } else {
+                } else {// AsyncCallBack类型事件
                   Packet p = (Packet) event;
                   int rc = 0;
                   String clientPath = p.clientPath;
@@ -870,16 +886,28 @@ public class ClientCnxn {
     /**
      * This class services the outgoing request queue and generates the heart
      * beats. It also spawns the ReadThread.
+     * 1. 维护了客户端与服务端之间的会话生命周期（通过一定周期频率内向服务端发送PING包检测心跳），如果会话周期内客户端与服务端出现TCP连接断开，那么就会自动且透明地完成重连操作。
+     * 2. 管理了客户端所有的请求发送和响应接收操作，其将上层客户端API操作转换成相应的请求协议并发送到服务端，并完成对同步调用的返回和异步调用的回调。
+     * 3. 将来自服务端的事件传递给EventThread去处理。
+     *
      */
     class SendThread extends ZooKeeperThread {
+        // 上一次ping的 nano time
         private long lastPingSentNs;
+        // 通信层ClientCnxnSocket，默认就是ClientCnxnSocketNIO
         private final ClientCnxnSocket clientCnxnSocket;
         private Random r = new Random();
+        // 是否第一次connect
         private boolean isFirstConnect = true;
 
+        /**
+         * TODO:读取server的回复，进行outgoingQueue以及pendingQueue的相关处理，事件触发等等
+         *
+         * @param incomingBuffer
+         * @throws IOException
+         */
         void readResponse(ByteBuffer incomingBuffer) throws IOException {
-            ByteBufferInputStream bbis = new ByteBufferInputStream(
-                    incomingBuffer);
+            ByteBufferInputStream bbis = new ByteBufferInputStream(incomingBuffer);
             BinaryInputArchive bbia = BinaryInputArchive.getArchive(bbis);
             ReplyHeader replyHdr = new ReplyHeader();
 
@@ -1121,17 +1149,18 @@ public class ClientCnxn {
             RequestHeader h = new RequestHeader(-2, OpCode.ping);
             queuePacket(h, null, null, null, null, null, null, null, null);
         }
-
+        // 读写server地址
         private InetSocketAddress rwServerAddress = null;
-
+        // 最短ping 读写server的 timeout时间
         private final static int minPingRwTimeout = 100;
-
+        // 最长ping 读写server的 timeout时间
         private final static int maxPingRwTimeout = 60000;
-
+        // 默认ping 读写server的 timeout时间
         private int pingRwTimeout = minPingRwTimeout;
 
         // Set to true if and only if constructor of ZooKeeperSaslClient
         // throws a LoginException: see startConnect() below.
+        // sasl登录失败
         private boolean saslLoginFailed = false;
 
         private void startConnect(InetSocketAddress addr) throws IOException {
