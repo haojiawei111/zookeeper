@@ -33,6 +33,7 @@ public class ZooDefs {
 
    @InterfaceAudience.Public
     public interface OpCode {
+       // 通知
         public final int notification = 0;
 
         public final int create = 1;

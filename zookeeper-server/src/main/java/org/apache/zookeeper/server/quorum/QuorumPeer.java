@@ -1324,17 +1324,18 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 case OBSERVING:
                     try {
                         LOG.info("OBSERVING");
-                        setObserver(makeObserver(logFactory));
-                        observer.observeLeader();
+                        setObserver(makeObserver(logFactory));//设置自己为observing
+                        observer.observeLeader();// 观察Leader
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e );
                     } finally {
                         observer.shutdown();
-                        setObserver(null);
+                        setObserver(null);// 清空following
                         updateServerState();
 
                         // Add delay jitter before we switch to LOOKING
                         // state to reduce the load of ObserverMaster
+                        // 在我们切换到LOOKING状态之前添加延迟抖动以减少ObserverMaster的负载
                         if (isRunning()) {
                             Observer.waitForReconnectDelay();
                         }
@@ -1343,20 +1344,20 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 case FOLLOWING:
                     try {
                        LOG.info("FOLLOWING");
-                        setFollower(makeFollower(logFactory));
-                        follower.followLeader();
+                        setFollower(makeFollower(logFactory));//设置自己为following
+                        follower.followLeader();// following leading
                     } catch (Exception e) {
                        LOG.warn("Unexpected exception",e);
                     } finally {
                        follower.shutdown();
-                       setFollower(null);
-                       updateServerState();
+                       setFollower(null);// 清空following
+                       updateServerState();// 服务器状态还原为looking
                     }
                     break;
                 case LEADING:
                     LOG.info("LEADING");
                     try {
-                        setLeader(makeLeader(logFactory));
+                        setLeader(makeLeader(logFactory));//设置自己为leading
                         leader.lead();
                         setLeader(null);
                     } catch (Exception e) {
@@ -1364,9 +1365,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                     } finally {
                         if (leader != null) {
                             leader.shutdown("Forcing shutdown");
-                            setLeader(null);
+                            setLeader(null);// 清空following
                         }
-                        updateServerState();
+                        updateServerState();// 服务器状态还原为looking
                     }
                     break;
                 }

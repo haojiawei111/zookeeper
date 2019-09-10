@@ -635,6 +635,7 @@ public class ZKDatabase {
 
     /**
      * commit to the underlying transaction log
+     * 提交底层事务日志
      * @throws IOException
      */
     public void commit() throws IOException {

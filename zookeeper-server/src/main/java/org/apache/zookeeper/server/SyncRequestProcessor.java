@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  *             它永远不会将ack发送回领导者，因此nextProcessor将为null。这改变了观察者txnlog的语义，因为它只包含已提交的txns。
  */
 // 继承ZooKeeperCriticalThread，是一个关键重要线程
-// SyncRequestProcessor，该处理器将请求存入磁盘，其将请求批量的存入磁盘以提高效率，请求在写入磁盘之前是不会被转发到下个处理器的。
+// SyncRequestProcessor，该处理器将事务请求存入磁盘，其将请求批量的存入磁盘以提高效率，请求在写入磁盘之前是不会被转发到下个处理器的。
 // SyncRequestProcessor也继承了Thread类并实现了RequestProcessor接口，表示其可以作为线程使用。
 // SyncRequestProcessor维护了ZooKeeperServer实例，其用于获取ZooKeeper的数据库和其他信息；
 // 维护了一个处理请求的队列，其用于存放请求；
@@ -117,7 +117,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // 从请求队列中拿到上个处理器下发的请求
                 Request si = queuedRequests.poll();
                 if (si == null) {
-                    // 说明没有请求，刷新到磁盘数据
+                    // 说明没有请求，刷新磁盘数据
                     flush();
                     // 从请求队列中取出一个请求，若队列为空会阻塞
                     si = queuedRequests.take();
@@ -129,7 +129,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 }
 
                 // track the number of records written to the log跟踪写入日志的记录数
-                if (zks.getZKDatabase().append(si)) {// 将请求添加至日志文件，只有事务性请求才会返回true
+                if (zks.getZKDatabase().append(si)) {// 将请求添加至事务日志文件，只有事务性请求才会返回true
                     // 写入一条日志，logCount加1
                     logCount++;
                     if (logCount > randRoll) { // 满足roll the log的条件
@@ -193,6 +193,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
           return;
       }
       // commit ZKDatabase
+        // 这里不是提交事务日志（这名字起的真误导人），这是在flush事务日志文件
       zks.getZKDatabase().commit();
 
       if (this.nextProcessor == null) {

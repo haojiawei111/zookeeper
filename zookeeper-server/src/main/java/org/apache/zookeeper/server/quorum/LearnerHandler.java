@@ -55,6 +55,9 @@ import org.slf4j.LoggerFactory;
  * There will be an instance of this class created by the Leader for each
  * learner. All communication with a learner is handled by this
  * class.
+ * LearnerHandler主要是处理Leader和Learner之间的交互.
+ * Leader和每个Learner连接会维持一个长连接，并有一个单独的LearnerHandler线程和一个Learner进行交互
+ * Learner和LearnerHandler是一一对应的关系.
  */
 public class LearnerHandler extends ZooKeeperThread {
     private static final Logger LOG = LoggerFactory.getLogger(LearnerHandler.class);
@@ -65,12 +68,14 @@ public class LearnerHandler extends ZooKeeperThread {
         return sock;
     }
 
+    //对应Leader角色
     final LearnerMaster learnerMaster;
 
     /** Deadline for receiving the next ack. If we are bootstrapping then
      * it's based on the initLimit, if we are done bootstrapping it's based
      * on the syncLimit. Once the deadline is past this learner should
      * be considered no longer "sync'd" with the leader. */
+    //下一个接收ack的deadline，启动时(数据同步)是一个标准，完成启动后(正常交互)，是另一个标准
     volatile long tickOfNextAckDeadline;
 
     /**
@@ -95,8 +100,8 @@ public class LearnerHandler extends ZooKeeperThread {
     /**
      * The packets to be sent to the learner
      */
-    final LinkedBlockingQueue<QuorumPacket> queuedPackets =
-        new LinkedBlockingQueue<QuorumPacket>();
+    //TODO: 待发送packet的队列
+    final LinkedBlockingQueue<QuorumPacket> queuedPackets = new LinkedBlockingQueue<QuorumPacket>();
 
     /**
      * This class controls the time that the Leader has been
@@ -106,53 +111,58 @@ public class LearnerHandler extends ZooKeeperThread {
      * that proposal arrives, it switches to the last proposal received
      * or clears the value if there is no pending proposal.
      */
+    // 控制leader等待当前learner给proposal回复ACK的时间
     private class SyncLimitCheck {
         private boolean started = false;
-        private long currentZxid = 0;
-        private long currentTime = 0;
-        private long nextZxid = 0;
-        private long nextTime = 0;
+        private long currentZxid = 0;//最久一次更新了但是没有收到ack的proposal的zxid
+        private long currentTime = 0;//最久一次更新了但是没有收到ack的proposal的时间
+        private long nextZxid = 0;//最新一次更新了但是没有收到ack的proposal的zxid
+        private long nextTime = 0;//最新一次更新了但是没有收到ack的proposal的时间
 
+        // 启动同步超时检测
         public synchronized void start() {
             started = true;
         }
 
+        //发送proposal时，更新提议的统计时间
         public synchronized void updateProposal(long zxid, long time) {
             if (!started) {
                 return;
             }
-            if (currentTime == 0) {
+            if (currentTime == 0) {//如果还没初始化就初始化
                 currentTime = time;
                 currentZxid = zxid;
-            } else {
+            } else {//如果已经初始化，就记录下一次的时间
                 nextTime = time;
                 nextZxid = zxid;
             }
         }
-
+        //收到Learner关于zxid的ack了，更新ack的统计时间
         public synchronized void updateAck(long zxid) {
-             if (currentZxid == zxid) {
-                 currentTime = nextTime;
+             if (currentZxid == zxid) {//如果是刚刚发送的ack
+                 currentTime = nextTime;//传递到下一个记录
                  currentZxid = nextZxid;
                  nextTime = 0;
                  nextZxid = 0;
-             } else if (nextZxid == zxid) {
+             } else if (nextZxid == zxid) {//如果旧的ack还没收到 但是收到了 新的ack
                  LOG.warn("ACK for " + zxid + " received before ACK for " + currentZxid + "!!!!");
                  nextTime = 0;
                  nextZxid = 0;
              }
         }
 
+        //如果没有等待超时，返回true
         public synchronized boolean check(long time) {
             if (currentTime == 0) {
                 return true;
             } else {
+                //当前时间与最久一次没收到ack的proposal的时间差
                 long msDelay = (time - currentTime) / 1000000;
                 return (msDelay < learnerMaster.syncTimeout());
             }
         }
-    };
-
+    }
+    //TODO:proposal，ack检测
     private SyncLimitCheck syncLimitCheck = new SyncLimitCheck();
 
     private BinaryInputArchive ia;
@@ -184,6 +194,7 @@ public class LearnerHandler extends ZooKeeperThread {
      */
     private long leaderLastZxid;
 
+    //sock已经连接上了
     LearnerHandler(Socket sock, BufferedInputStream bufferedInput, LearnerMaster learnerMaster) throws IOException {
         super("LearnerHandler-" + sock.getRemoteSocketAddress());
         this.sock = sock;
@@ -225,14 +236,20 @@ public class LearnerHandler extends ZooKeeperThread {
     /**
      * If this packet is queued, the sender thread will exit
      */
+    //代表一个关闭shutdown的packet来关闭发送packet的线程
     final QuorumPacket proposalOfDeath = new QuorumPacket();
 
+    //默认的learner类型（可以投票）,也可以设置为OBSERVER
     private LearnerType  learnerType = LearnerType.PARTICIPANT;
+
     public LearnerType getLearnerType() {
         return learnerType;
     }
 
     /**
+     * 消费 不断消费queuedPackets发送队列
+     * 遇到proposalOfDeath就break，遇到Proposal则进行对应的记录
+     *
      * This method will use the thread to send packets added to the
      * queuedPackets list
      *
@@ -246,17 +263,18 @@ public class LearnerHandler extends ZooKeeperThread {
                 p = queuedPackets.poll();
                 if (p == null) {
                     bufferedOutput.flush();
-                    p = queuedPackets.take();
+                    p = queuedPackets.take();// 这里会阻塞
                 }
 
                 if (p == proposalOfDeath) {
                     // Packet of death!
                     break;
                 }
-                if (p.getType() == Leader.PING) {
+                if (p.getType() == Leader.PING) {// 集群间的心跳
                     traceMask = ZooTrace.SERVER_PING_TRACE_MASK;
                 }
                 if (p.getType() == Leader.PROPOSAL) {
+                    //更新当前proposal的时间统计
                     syncLimitCheck.updateProposal(p.getZxid(), System.nanoTime());
                 }
                 if (LOG.isTraceEnabled()) {
@@ -911,6 +929,7 @@ public class LearnerHandler extends ZooKeeperThread {
 
     public void shutdown() {
         // Send the packet of death
+        // 关闭当前handler，sock，以及让sendPackets的异步线程最终停止
         try {
             queuedPackets.put(proposalOfDeath);
         } catch (InterruptedException e) {
@@ -934,6 +953,8 @@ public class LearnerHandler extends ZooKeeperThread {
 
     /**
      * ping calls from the learnerMaster to the peers
+     *
+     * 发送ping命令，本质就是检测leader与learner是否有proposal超时了(超过指定时长没有收到ack)
      */
     public void ping() {
         // If learner hasn't sync properly yet, don't send ping packet
@@ -942,13 +963,14 @@ public class LearnerHandler extends ZooKeeperThread {
             return;
         }
         long id;
-        if (syncLimitCheck.check(System.nanoTime())) {
+        if (syncLimitCheck.check(System.nanoTime())) {//如果还没有超时
             id = learnerMaster.getLastProposed();
             QuorumPacket ping = new QuorumPacket(Leader.PING, id, null, null);
             queuePacket(ping);
         } else {
+            //如果已经超时，就关闭这个handler
             LOG.warn("Closing connection to peer due to transaction timeout.");
-            shutdown();
+            shutdown();//关闭当前handler，sock，以及让syncLimitCheck任务最终停止
         }
     }
 
@@ -962,6 +984,7 @@ public class LearnerHandler extends ZooKeeperThread {
         queuePacket(packet);
     }
 
+    // 将packet加入异步发送队列
     void queuePacket(QuorumPacket p) {
         queuedPackets.add(p);
     }
@@ -976,6 +999,10 @@ public class LearnerHandler extends ZooKeeperThread {
         return size;
     }
 
+    /**
+     * 是否保持同步
+     * @return
+     */
     public boolean synced() {
         return isAlive() && learnerMaster.getCurrentTick() <= tickOfNextAckDeadline;
     }

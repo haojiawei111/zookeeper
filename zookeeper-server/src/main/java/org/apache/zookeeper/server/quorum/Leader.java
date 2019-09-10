@@ -102,20 +102,21 @@ public class Leader implements LearnerMaster {
     }
 
     private final LearnerSnapshotThrottler learnerSnapshotThrottler;
-
+    //当前learner状态的zk服务器
     final LeaderZooKeeperServer zk;
-
+    //当前集群对象
     final QuorumPeer self;
 
     // VisibleForTesting
     protected boolean quorumFormed = false;
 
     // the follower acceptor thread
+    // follower接受者线程
     volatile LearnerCnxAcceptor cnxAcceptor = null;
 
     // list of all the learners, including followers and observers
-    private final HashSet<LearnerHandler> learners =
-        new HashSet<LearnerHandler>();
+    // 所有learners的名单，包括followers和observers
+    private final HashSet<LearnerHandler> learners = new HashSet<LearnerHandler>();
 
     private final BufferStats proposalStats;
 
@@ -191,14 +192,13 @@ public class Leader implements LearnerMaster {
     }
 
     // Pending sync requests. Must access under 'this' lock.
-    private final Map<Long,List<LearnerSyncRequest>> pendingSyncs =
-        new HashMap<Long,List<LearnerSyncRequest>>();
+    private final Map<Long,List<LearnerSyncRequest>> pendingSyncs = new HashMap<Long,List<LearnerSyncRequest>>();
 
     synchronized public int getNumPendingSyncs() {
         return pendingSyncs.size();
     }
 
-    //Follower counter
+    //Follower 数量
     final AtomicLong followerCounter = new AtomicLong(-1);
 
     /**
@@ -319,6 +319,7 @@ public class Leader implements LearnerMaster {
     /**
      * This message type is sent by the leader to indicate it's zxid and if
      * needed, its database.
+     * 此消息类型由leader发送，以指示它是zxid以及是否需要其数据库。
      */
     final static int NEWLEADER = 10;
 
@@ -337,6 +338,8 @@ public class Leader implements LearnerMaster {
     /**
      * This message is the first that a follower receives from the leader.
      * It has the protocol version and the epoch of the leader.
+     * 此消息是follower从leader那里收到的第一条消息。 *
+     * 它具有协议版本和领导者的时代。
      */
     public static final int LEADERINFO = 17;
 
@@ -386,6 +389,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * This message type informs observers of a committed proposal.
+     * 此消息类型通知observers已提交的提议。
      */
     final static int INFORM = 8;
 
@@ -406,6 +410,7 @@ public class Leader implements LearnerMaster {
     // VisibleForTesting
     protected final Proposal newLeaderProposal = new Proposal();
 
+    // Leader服务器需要和所有其余的服务器（统称为Learner）保持连接以确集群的机器存活情况，LearnerCnxAcceptor负责接收所有非Leader服务器的连接请求。
     class LearnerCnxAcceptor extends ZooKeeperCriticalThread {
         private volatile boolean stop = false;
 
@@ -521,6 +526,7 @@ public class Leader implements LearnerMaster {
 
             // Start thread that waits for connection requests from
             // new followers.
+            // 等待learner的连接
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();
 
@@ -969,6 +975,8 @@ public class Leader implements LearnerMaster {
          * this to work next must be a FinalRequestProcessor and
          * FinalRequestProcessor.processRequest MUST process the request
          * synchronously!
+         * 此请求处理器只维护toBeApplied列表。
+         * 为此，下一步必须是FinalRequestProcessor和FinalRequestProcessor.processRequest必须同步处理请求！
          *
          * @param next
          *                a reference to the FinalRequestProcessor
@@ -1512,6 +1520,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * Get string representation of a given packet type
+     * 获取给定数据包类型的字符串表示形式
      * @param packetType
      * @return string representing the packet type
      */
