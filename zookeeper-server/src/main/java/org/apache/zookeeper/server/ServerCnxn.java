@@ -57,9 +57,10 @@ import org.slf4j.LoggerFactory;
 public abstract class ServerCnxn implements Stats, Watcher {
     // This is just an arbitrary object to represent requests issued by
     // (aka owned by) this class
+    // 代表由本类提出的请求
     final public static Object me = new Object();
     private static final Logger LOG = LoggerFactory.getLogger(ServerCnxn.class);
-
+    // 认证信息
     private Set<Id> authInfo = Collections.newSetFromMap(new ConcurrentHashMap<Id, Boolean>());
 
     private static final byte[] fourBytes = new byte[4];
@@ -68,11 +69,14 @@ public abstract class ServerCnxn implements Stats, Watcher {
      * If the client is of old version, we don't send r-o mode info to it.
      * The reason is that if we would, old C client doesn't read it, which
      * results in TCP RST packet, i.e. "connection reset by peer".
+     * 如果客户端是旧版本，我们不会向其发送r-o模式信息。原因是，如果我们愿意，
+     * 旧的C客户端不会读取它，这会导致TCP RST数据包，即“通过对等方重置连接”。
      */
     boolean isOldClient = true;
     // 标志这个连接是否存活
     private volatile boolean stale = false;
 
+    //已提交但是尚未回复的请求数
     AtomicLong outstandingCount = new AtomicLong();
 
     /** The ZooKeeperServer for this connection. May be null if the server
@@ -97,7 +101,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
         }
     }
 
-    // will be called from zkServer.processPacket
+    // will be called from zkServer.processPacket 将从zkServer.processPacket调用
     public void decrOutstandingAndCheckThrottle(ReplyHeader h) {
         if (h.getXid() <= 0) {
             return;
