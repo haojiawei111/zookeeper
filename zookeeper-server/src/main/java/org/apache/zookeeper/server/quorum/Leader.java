@@ -406,6 +406,7 @@ public class Leader implements LearnerMaster {
     // VisibleForTesting
     protected final Proposal newLeaderProposal = new Proposal();
 
+    // 运行期间，Leader服务器需要和所有其余的服务器（统称为Learner）保持连接以确集群的机器存活情况，LearnerCnxAcceptor负责接收所有非Leader服务器的连接请求。
     class LearnerCnxAcceptor extends ZooKeeperCriticalThread {
         private volatile boolean stop = false;
 
@@ -430,6 +431,9 @@ public class Leader implements LearnerMaster {
 
                         BufferedInputStream is = new BufferedInputStream(
                                 s.getInputStream());
+                        //Leader接收到来自其他机器连接创建请求后，会创建一个LearnerHandler实例，
+                        // 每个LearnerHandler实例都对应一个Leader与Learner服务器之间的连接，
+                        // 其负责Leader和Learner服务器之间几乎所有的消息通信和数据同步。
                         LearnerHandler fh = new LearnerHandler(s, is,
                                 Leader.this);
                         fh.start();
