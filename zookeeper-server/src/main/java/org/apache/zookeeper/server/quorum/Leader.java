@@ -108,14 +108,16 @@ public class Leader implements LearnerMaster {
     final QuorumPeer self;
 
     // VisibleForTesting
+    // 是否已有过半参与者确认当前leader并且完成同步
     protected boolean quorumFormed = false;
 
     // the follower acceptor thread
+    // 读取Learner消息的线程
     volatile LearnerCnxAcceptor cnxAcceptor = null;
 
     // list of all the learners, including followers and observers
-    private final HashSet<LearnerHandler> learners =
-        new HashSet<LearnerHandler>();
+    //learnerHandler集合
+    private final HashSet<LearnerHandler> learners = new HashSet<LearnerHandler>();
 
     private final BufferStats proposalStats;
 
@@ -142,8 +144,8 @@ public class Leader implements LearnerMaster {
     }
 
     // list of followers that are ready to follow (i.e synced with the leader)
-    private final HashSet<LearnerHandler> forwardingFollowers =
-        new HashSet<LearnerHandler>();
+    // forwarding的LearnerHandler集合
+    private final HashSet<LearnerHandler> forwardingFollowers = new HashSet<LearnerHandler>();
 
     /**
      * Returns a copy of the current forwarding follower snapshot
@@ -172,8 +174,8 @@ public class Leader implements LearnerMaster {
         }
     }
 
-    private final HashSet<LearnerHandler> observingLearners =
-        new HashSet<LearnerHandler>();
+    //observing 的LearnerHandler集合
+    private final HashSet<LearnerHandler> observingLearners = new HashSet<LearnerHandler>();
 
     /**
      * Returns a copy of the current observer snapshot
@@ -191,8 +193,8 @@ public class Leader implements LearnerMaster {
     }
 
     // Pending sync requests. Must access under 'this' lock.
-    private final Map<Long,List<LearnerSyncRequest>> pendingSyncs =
-        new HashMap<Long,List<LearnerSyncRequest>>();
+    // 正在处理的同步(要等到过半ack才算完)
+    private final Map<Long,List<LearnerSyncRequest>> pendingSyncs = new HashMap<Long,List<LearnerSyncRequest>>();
 
     synchronized public int getNumPendingSyncs() {
         return pendingSyncs.size();
@@ -320,6 +322,7 @@ public class Leader implements LearnerMaster {
      * This message type is sent by the leader to indicate it's zxid and if
      * needed, its database.
      */
+    //leader发给learner的，当leader发送了同步数据的相关的packets之后发送
     final static int NEWLEADER = 10;
 
     /**
@@ -387,6 +390,7 @@ public class Leader implements LearnerMaster {
     /**
      * This message type informs observers of a committed proposal.
      */
+    // 通知observer 有commit消息
     final static int INFORM = 8;
 
     /**
@@ -399,11 +403,13 @@ public class Leader implements LearnerMaster {
      */
     final static int INFORMANDACTIVATE = 19;
 
+    // 已经提出，还没有处理完的提议的map,key是zxid
     final ConcurrentMap<Long, Proposal> outstandingProposals = new ConcurrentHashMap<Long, Proposal>();
-
+    // 即将生效的提议(已有过半确认)
     private final ConcurrentLinkedQueue<Proposal> toBeApplied = new ConcurrentLinkedQueue<Proposal>();
 
     // VisibleForTesting
+    //newLeader的提议
     protected final Proposal newLeaderProposal = new Proposal();
 
     // 运行期间，Leader服务器需要和所有其余的服务器（统称为Learner）保持连接以确集群的机器存活情况，LearnerCnxAcceptor负责接收所有非Leader服务器的连接请求。
@@ -422,6 +428,7 @@ public class Leader implements LearnerMaster {
                     Socket s = null;
                     boolean error = false;
                     try {
+                        //接收socket链接
                         s = ss.accept();
 
                         // start with the initLimit, once the ack is processed
@@ -478,9 +485,12 @@ public class Leader implements LearnerMaster {
         }
     }
 
+    //leader状态封装，包括最后的事务ID以及所处的代数
     StateSummary leaderStateSummary;
 
+    //新的acceptEpoch号码,各端的max(lastAcceptedEpoch) + 1, 先默认-1
     long epoch = -1;
+    //是否在等待新的acceptEpoch号生成
     boolean waitingForNewEpoch = true;
 
     // when a reconfig occurs where the leader is removed or becomes an observer,
@@ -501,7 +511,10 @@ public class Leader implements LearnerMaster {
 
     /**
      * This method is main function that is called to lead
-       这种方法是被称为引导的主要功能
+     * 这种方法是被称为引导的主要功能
+     *
+     * TODO: 选举完leader之后，leader的入口函数
+     *
      * @throws IOException
      * @throws InterruptedException
      */
@@ -512,19 +525,24 @@ public class Leader implements LearnerMaster {
         ServerMetrics.getMetrics().ELECTION_TIME.add(electionTimeTaken);
         LOG.info("LEADING - LEADER ELECTION TOOK - {} {}", electionTimeTaken,
                 QuorumPeer.FLE_TIME_UNIT);
+        //开始fast leader election时间
         self.start_fle = 0;
+        //结束时间
         self.end_fle = 0;
 
         zk.registerJMX(new LeaderBean(this, zk), self.jmxLocalPeerBean);
 
         try {
+            //初始tick为0，代表第几个tickTime
             self.tick.set(0);
+            //先loadData加载数据
             zk.loadData();
-
+            //根据epoch和zxid记录状态
             leaderStateSummary = new StateSummary(self.getCurrentEpoch(), zk.getLastProcessedZxid());
 
             // Start thread that waits for connection requests from
             // new followers.
+            //等待learner的连接
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();
 
@@ -533,9 +551,11 @@ public class Leader implements LearnerMaster {
             zk.setZxid(ZxidUtils.makeZxid(epoch, 0));
 
             synchronized(this){
+                //获取zxid
                 lastProposed = zk.getZxid();
             }
 
+            //生成NEWLEADER包
             newLeaderProposal.packet = new QuorumPacket(NEWLEADER, zk.getZxid(),
                    null, null);
 
@@ -589,6 +609,7 @@ public class Leader implements LearnerMaster {
              self.setCurrentEpoch(epoch);
 
              try {
+                 //等待一段时间，收到过半的参与者返回的ACK
                  waitForNewLeaderAck(self.getId(), zk.getZxid());
              } catch (InterruptedException e) {
                  shutdown("Waiting for a quorum of followers, only synced with sids: [ "
@@ -613,7 +634,7 @@ public class Leader implements LearnerMaster {
                  }
                  return;
              }
-
+             //启动zk
              startZkServer();
 
             /**
@@ -657,6 +678,7 @@ public class Leader implements LearnerMaster {
                 synchronized (this) {
                     long start = Time.currentElapsedTime();
                     long cur = start;
+                    //每tickTime周期的一半
                     long end = start + self.tickTime / 2;
                     while (cur < end) {
                         wait(end - cur);
@@ -704,7 +726,7 @@ public class Leader implements LearnerMaster {
                     tickSkip = !tickSkip;
                 }
                 for (LearnerHandler f : getLearners()) {
-                    f.ping();
+                    f.ping();//验证有没有LearnerHandler的proposal超时了没有处理
                 }
             }
             if (shutdownMessage != null) {
@@ -1051,6 +1073,7 @@ public class Leader implements LearnerMaster {
         }
     }
 
+    //最近commit的zxid
     long lastCommitted = -1;
 
     /**
@@ -1108,6 +1131,7 @@ public class Leader implements LearnerMaster {
                 designatedLeader, proposal.packet.getData()));
     }
 
+    //最近一次提议的zxid
     long lastProposed;
 
     @Override
@@ -1132,7 +1156,9 @@ public class Leader implements LearnerMaster {
     }
 
     /**
+     * TODO: 发起投票
      * create a proposal and send it out to all the members
+     * 创建提案并将其发送给所有成员
      *
      * @param request
      * @return the proposal that is queued to send to all the members
@@ -1186,6 +1212,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * Process sync requests
+     * 处理同步请求
      *
      * @param r the request
      */
@@ -1267,6 +1294,7 @@ public class Leader implements LearnerMaster {
     }
 
     // VisibleForTesting
+    //连接上leader的sid集合
     protected final Set<Long> connectingFollowers = new HashSet<Long>();
 
     private volatile boolean quitWaitForEpoch = false;
@@ -1365,8 +1393,10 @@ public class Leader implements LearnerMaster {
     }
 
     // VisibleForTesting
+    //针对LEADERINFO回复ACKEPOCH的集合
     protected final Set<Long> electingFollowers = new HashSet<Long>();
     // VisibleForTesting
+    // 是否过半机器注册成功
     protected boolean electionFinished = false;
 
     @Override
