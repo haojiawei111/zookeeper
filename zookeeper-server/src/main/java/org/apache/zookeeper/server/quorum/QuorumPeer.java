@@ -982,6 +982,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             // 同时会从磁盘的currentEpoch和acceptedEpoch文件中对去出上次记录的最新的epoch值，进行校验。
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
+                // 读取当前的 Epoch 时代
                 currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
             	// pick a reasonable epoch number
@@ -1229,7 +1230,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             jmxQuorumBean = new QuorumBean(this);
             MBeanRegistry.getInstance().register(jmxQuorumBean, null);
             Collection<QuorumServer> values = getView().values();
-            for(QuorumServer s: getView().values()){
+            for(QuorumServer s: values){
                 ZKMBeanInfo p;
                 if (getId() == s.id) {
                     p = jmxLocalPeerBean = new LocalPeerBean(this);
@@ -1265,6 +1266,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 switch (getPeerState()) {
                 case LOOKING:// 进行选举
                     LOG.info("LOOKING");
+                    // 记录本机选举次数
                     ServerMetrics.getMetrics().LOOKING_COUNT.add(1);
 
                     if (Boolean.getBoolean("readonlymode.enabled")) {// 开启的只读模式
@@ -1453,8 +1455,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     /**
-     * A 'view' is a node's current opinion of the membership of the entire
-     * ensemble.
+     * A 'view' is a node's current opinion of the membership of the entire ensemble.
+     * “视图”是节点对整个集合的成员资格的当前意见。
      */
     public Map<Long,QuorumPeer.QuorumServer> getView() {
         return Collections.unmodifiableMap(getQuorumVerifier().getAllMembers());

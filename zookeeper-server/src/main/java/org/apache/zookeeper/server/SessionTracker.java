@@ -43,8 +43,9 @@ public interface SessionTracker {
         boolean isClosing();
     }
     public static interface SessionExpirer {
+        //过期某个session
         void expire(Session session);
-
+        //获取serverId
         long getServerId();
     }
 
