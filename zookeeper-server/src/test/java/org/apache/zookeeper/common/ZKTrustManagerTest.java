@@ -58,6 +58,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 // We can only test calls to ZKTrustManager using Sockets (not SSLEngines). This can be fine since the logic is the same.
+// 我们只能使用套接字（而不是SSLEngines）测试对ZKTrustManager的调用。因为逻辑是相同的，所以可以。
 public class ZKTrustManagerTest extends ZKTestCase {
 
     private static KeyPair keyPair;

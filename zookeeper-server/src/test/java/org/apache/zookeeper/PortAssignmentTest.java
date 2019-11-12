@@ -55,8 +55,7 @@ public class PortAssignmentTest {
                 new Object[] { "", "", 11221, 32767 });
     }
 
-    public PortAssignmentTest(String strProcessCount, String cmdLine,
-            int expectedMinimumPort, int expectedMaximumPort) {
+    public PortAssignmentTest(String strProcessCount, String cmdLine, int expectedMinimumPort, int expectedMaximumPort) {
         this.strProcessCount = strProcessCount;
         this.cmdLine = cmdLine;
         this.expectedMinimumPort = expectedMinimumPort;
@@ -65,12 +64,9 @@ public class PortAssignmentTest {
 
     @Test
     public void testSetupPortRange() {
-        PortAssignment.PortRange portRange = PortAssignment.setupPortRange(
-                strProcessCount, cmdLine);
-        assertEquals(buildAssertionMessage("minimum"), expectedMinimumPort,
-                portRange.getMinimum());
-        assertEquals(buildAssertionMessage("maximum"), expectedMaximumPort,
-                portRange.getMaximum());
+        PortAssignment.PortRange portRange = PortAssignment.setupPortRange(strProcessCount, cmdLine);
+        assertEquals(buildAssertionMessage("minimum"), expectedMinimumPort, portRange.getMinimum());
+        assertEquals(buildAssertionMessage("maximum"), expectedMaximumPort, portRange.getMaximum());
     }
 
     private String buildAssertionMessage(String checkType) {

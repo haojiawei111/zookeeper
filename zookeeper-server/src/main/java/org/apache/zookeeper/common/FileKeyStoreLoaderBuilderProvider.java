@@ -31,6 +31,7 @@ public class FileKeyStoreLoaderBuilderProvider {
      */
     static FileKeyStoreLoader.Builder<? extends FileKeyStoreLoader>
     getBuilderForKeyStoreFileType(KeyStoreFileType type) {
+        // TODO: Objects.requireNonNull(type)判空
         switch (Objects.requireNonNull(type)) {
             case JKS:
                 return new JKSFileLoader.Builder();

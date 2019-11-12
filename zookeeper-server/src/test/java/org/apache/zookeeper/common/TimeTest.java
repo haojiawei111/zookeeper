@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Command line program for demonstrating robustness to clock
  * changes.
+ * 命令行程序，用于证明时钟变化的稳健性。
  * <p/>
  * How to run:
  * ant clean compile-test
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * date -s '+1hour'
  * date -s '-1hour'
  * <p/>
+ * 只要没有任何过期的事件，该实验就会成功。
  * As long as there isn't any expired event, the experiment is successful.
  */
 public class TimeTest extends ClientBase {
@@ -59,6 +61,7 @@ public class TimeTest extends ClientBase {
         System.out.printf("After construct\n");
         test.setUp();
         ZooKeeper zk = test.createClient();
+        // TODO: 创建临时节点
         zk.create("/ephemeral", new byte[]{1, 2, 3},
                 ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         while (Time.currentElapsedTime() - nt0 < 100000) {

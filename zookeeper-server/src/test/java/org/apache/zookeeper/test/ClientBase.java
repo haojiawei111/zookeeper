@@ -71,8 +71,7 @@ public abstract class ClientBase extends ZKTestCase {
     protected static final Logger LOG = LoggerFactory.getLogger(ClientBase.class);
 
     public static int CONNECTION_TIMEOUT = 30000;
-    static final File BASETEST =
-        new File(System.getProperty("build.test.dir", "build"));
+    static final File BASETEST = new File(System.getProperty("build.test.dir", "build"));
 
     protected String hostPort = "127.0.0.1:" + PortAssignment.unique();
     protected int maxCnxns = 0;

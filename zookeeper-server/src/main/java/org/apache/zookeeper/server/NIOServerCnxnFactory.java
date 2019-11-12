@@ -234,8 +234,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
             try {
                 selector.select();
 
-                Iterator<SelectionKey> selectedKeys =
-                    selector.selectedKeys().iterator();
+                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
                 while (!stopped && selectedKeys.hasNext()) {
                     SelectionKey key = selectedKeys.next();
                     selectedKeys.remove();

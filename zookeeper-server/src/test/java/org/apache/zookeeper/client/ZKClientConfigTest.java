@@ -46,6 +46,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
+/**
+ *
+ */
 public class ZKClientConfigTest {
     private static final File testData = new File(System.getProperty("test.data.dir", "src/test/resources/data"));
     @Rule
@@ -70,17 +73,22 @@ public class ZKClientConfigTest {
         properties.put(SECURE_CLIENT, "true");
 
         for (Map.Entry<String, String> e : properties.entrySet()) {
+            System.out.println("Key: "+e.getKey()+",Value: "+e.getValue());
             System.setProperty(e.getKey(), e.getValue());
         }
         /**
          * ZKClientConfig should get initialized with system properties
+         * ZKClientConfig应该使用系统属性进行初始化
          */
         ZKClientConfig conf = new ZKClientConfig();
         for (Map.Entry<String, String> e : properties.entrySet()) {
+            System.out.println(e.getKey()+"---"+e.getValue());
+            System.out.println(conf.getProperty(e.getKey()));
             assertEquals(e.getValue(), conf.getProperty(e.getKey()));
         }
         /**
          * clear properties
+         * 清除属性
          */
         for (Map.Entry<String, String> e : properties.entrySet()) {
             System.clearProperty(e.getKey());
@@ -92,6 +100,7 @@ public class ZKClientConfigTest {
          */
         for (Map.Entry<String, String> e : properties.entrySet()) {
             String result = conf.getProperty(e.getKey());
+            // 清除了之后全是null
             assertNull(result);
         }
     }
@@ -105,6 +114,7 @@ public class ZKClientConfigTest {
         assertEquals(conf.getProperty(ZK_SASL_CLIENT_USERNAME), clientName);
 
         String newClientName = "zookeeper2";
+        // 更新属性
         conf.setProperty(ZK_SASL_CLIENT_USERNAME, newClientName);
 
         assertEquals(conf.getProperty(ZK_SASL_CLIENT_USERNAME), newClientName);
@@ -112,6 +122,7 @@ public class ZKClientConfigTest {
 
     @Test
     public void testReadConfigurationFile() throws IOException, ConfigException {
+        // 创建临时文件
         File file = File.createTempFile("clientConfig", ".conf", testData);
         file.deleteOnExit();
         Properties clientConfProp = new Properties();
@@ -160,17 +171,19 @@ public class ZKClientConfigTest {
         String prop = "UnSetProperty" + System.currentTimeMillis();
         int defaultValue = 100;
         // property is not set we should get the default value
+        // 未设置属性，我们应该获取默认值
         int result = conf.getInt(prop, defaultValue);
         assertEquals(defaultValue, result);
 
-        // property is set but can not be parsed to int, we should get the
-        // NumberFormatException
+        // property is set but can not be parsed to int, we should get the NumberFormatException
+        // 设置了属性但无法将其解析为int，我们应该获取NumberFormatException
         conf.setProperty(ZKConfig.JUTE_MAXBUFFER, "InvlaidIntValue123");
         try {
             result = conf.getInt(ZKConfig.JUTE_MAXBUFFER, defaultValue);
             fail("NumberFormatException is expected");
         } catch (NumberFormatException exception) {
             // do nothing
+            System.out.println("ZKConfig.JUTE_MAXBUFFER 传入的是一个string，但是要解析出int，解析出粗然后就抛异常");
         }
         assertEquals(defaultValue, result);
 

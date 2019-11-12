@@ -39,6 +39,7 @@ public class ZKUtilTest {
 
     @Test
     public void testValidateFileInput() throws IOException {
+        // 创建临时文件
         File file = File.createTempFile("test", ".junit", testData);
         file.deleteOnExit();
         String absolutePath = file.getAbsolutePath();
@@ -51,6 +52,7 @@ public class ZKUtilTest {
         String fileName = UUID.randomUUID().toString();
         File file = new File(testData, fileName);
         String absolutePath = file.getAbsolutePath();
+        // 这个文件没有创建，所以文件不存在
         String error = ZKUtil.validateFileInput(absolutePath);
         assertNotNull(error);
         String expectedMessage = "File '" + absolutePath + "' does not exist.";
@@ -61,9 +63,10 @@ public class ZKUtilTest {
     public void testValidateFileInputDirectory() throws Exception {
         File file = File.createTempFile("test", ".junit", testData);
         file.deleteOnExit();
-        // delete file, as we need directory not file
+        // 删除文件，因为我们需要目录而不是文件
         file.delete();
         file.mkdir();
+        // 测试目录
         String absolutePath = file.getAbsolutePath();
         String error = ZKUtil.validateFileInput(absolutePath);
         assertNotNull(error);
@@ -74,8 +77,10 @@ public class ZKUtilTest {
     @Test
     public void testUnreadableFileInput() throws Exception {
         //skip this test on Windows, coverage on Linux
+        // 在Windows上跳过此测试，在Linux上跳过
         assumeTrue(!org.apache.zookeeper.Shell.WINDOWS);
         File file = File.createTempFile("test", ".junit", testData);
+        // 这个文件不可读
         file.setReadable(false, false);
         file.deleteOnExit();
         String absolutePath = file.getAbsolutePath();

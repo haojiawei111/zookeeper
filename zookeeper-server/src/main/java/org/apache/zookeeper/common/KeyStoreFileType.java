@@ -21,6 +21,7 @@ package org.apache.zookeeper.common;
 /**
  * This enum represents the file type of a KeyStore or TrustStore.
  * Currently, JKS (java keystore) and PEM types are supported.
+ * 该枚举表示KeyStore或TrustStore的文件类型。当前，支持JKS（Java密钥库）和PEM类型。
  */
 public enum KeyStoreFileType {
     // TODO: consider adding support for PKCS12
@@ -73,6 +74,7 @@ public enum KeyStoreFileType {
      * @throws IllegalArgumentException if the filename does not end with
      *         ".jks" or ".pem".
      */
+    // TODO: 通过文件后缀名查找KeyStoreFileType
     public static KeyStoreFileType fromFilename(String filename) {
         int i = filename.lastIndexOf('.');
         if (i >= 0) {
@@ -103,6 +105,7 @@ public enum KeyStoreFileType {
      * @throws IllegalArgumentException if <code>propertyValue</code>is empty
      *         or null and the type could not be determined from the file name.
      */
+    // TODO: 先通过propertyValue找，找不到在通过文件后缀找
     public static KeyStoreFileType fromPropertyValueOrFileName(String propertyValue,
                                                                String filename) {
         KeyStoreFileType result = KeyStoreFileType.fromPropertyValue(propertyValue);

@@ -21,6 +21,9 @@ package org.apache.zookeeper.common;
 import org.apache.zookeeper.ZKTestCase;
 import org.junit.Test;
 
+/**
+ * 测试PathUtils类，这个类最重要的功能就是验证路径是否合法
+ */
 public class PathUtilsTest extends ZKTestCase {
 
     @Test
@@ -41,11 +44,13 @@ public class PathUtilsTest extends ZKTestCase {
 
     @Test(expected=IllegalArgumentException.class)
     public void testValidatePath_NotAbsolutePath() {
+        // 不是以"/"开头的
         PathUtils.validatePath("not/valid");
     }
 
     @Test(expected=IllegalArgumentException.class)
     public void testValidatePath_EndsWithSlash() {
+        // 以"/"结尾错误
         PathUtils.validatePath("/ends/with/slash/");
     }
     
@@ -73,6 +78,7 @@ public class PathUtilsTest extends ZKTestCase {
     public void testValidatePath_NameContainingPeriod() {
         // A period that isn't on its own is ok
         PathUtils.validatePath("/name/with.period.");
+        PathUtils.validatePath("/name/..period.");
     }
     
     @Test(expected=IllegalArgumentException.class)

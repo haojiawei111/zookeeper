@@ -623,6 +623,7 @@ public class NIOServerCnxn extends ServerCnxn {
     private boolean readLength(SelectionKey k) throws IOException {
         // Read the length, now get the buffer 读取长度，现在获取缓冲区
         int len = lenBuffer.getInt();
+
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
         }

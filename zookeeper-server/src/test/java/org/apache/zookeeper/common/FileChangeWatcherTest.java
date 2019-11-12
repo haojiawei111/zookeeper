@@ -40,6 +40,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * 测试FileChangeWatcher，这个类是用于监视目录中的文件更改。在给定目录中添加，删除或修改文件时，将从后台线程调用用户提供的回调。
+ */
 public class FileChangeWatcherTest extends ZKTestCase {
     private static File tempDir;
     private static File tempFile;
@@ -48,6 +51,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
 
     @BeforeClass
     public static void createTempFile() throws IOException {
+        // 创建build/test2703097592095959464.junit.dir 目录
         tempDir = ClientBase.createEmptyTestDir();
         tempFile = File.createTempFile("zk_test_", "", tempDir);
         tempFile.deleteOnExit();
@@ -71,7 +75,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
                     tempDir.toPath(),
                     event -> {
                         LOG.info("Got an update: " + event.kind() + " " + event.context());
-                        // Filter out the extra ENTRY_CREATE events that are
+                        //                        // Filter out the extra ENTRY_CREATE events that are
                         // sometimes seen at the start. Even though we create the watcher
                         // after the file exists, sometimes we still get a create event.
                         if (StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind())) {
@@ -87,6 +91,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
             Thread.sleep(1000L); // XXX hack
             for (int i = 0; i < 3; i++) {
                 LOG.info("Modifying file, attempt " + (i + 1));
+                // TODO: 修改文件
                 FileUtils.writeStringToFile(
                         tempFile,
                         "Hello world " + i + "\n",
@@ -98,6 +103,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
                     }
                     assertEquals("Wrong number of events", i + 1, events.size());
                     WatchEvent<?> event = events.get(i);
+                    System.out.println(event.kind());
                     assertEquals(StandardWatchEventKinds.ENTRY_MODIFY, event.kind());
                     assertEquals(tempFile.getName(), event.context().toString());
                 }
@@ -134,6 +140,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
             watcher.waitForState(FileChangeWatcher.State.RUNNING);
             Thread.sleep(1000L); // XXX hack
             LOG.info("Touching file");
+            // TODO: 更改文件最后修改时间
             FileUtils.touch(tempFile);
             synchronized (events) {
                 if (events.isEmpty()) {
@@ -169,6 +176,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
             watcher.start();
             watcher.waitForState(FileChangeWatcher.State.RUNNING);
             Thread.sleep(1000L); // XXX hack
+            // TODO: 创建事件
             File tempFile2 = File.createTempFile("zk_test_", "", tempDir);
             tempFile2.deleteOnExit();
             synchronized (events) {
@@ -211,6 +219,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
             watcher.start();
             watcher.waitForState(FileChangeWatcher.State.RUNNING);
             Thread.sleep(1000L); // XXX hack
+            // TODO: 删除事件
             tempFile.delete();
             synchronized (events) {
                 if (events.isEmpty()) {
@@ -244,6 +253,8 @@ public class FileChangeWatcherTest extends ZKTestCase {
                             callCount.notifyAll();
                         }
                         if (oldValue == 0) {
+                            // 此错误不应使观察程序线程崩溃
+                            System.out.println("第一次修改文件会触发这个错误，但是线程不应该崩溃");
                             throw new RuntimeException("This error should not crash the watcher thread");
                         }
                     });
@@ -251,6 +262,7 @@ public class FileChangeWatcherTest extends ZKTestCase {
             watcher.waitForState(FileChangeWatcher.State.RUNNING);
             Thread.sleep(1000L); // XXX hack
             LOG.info("Modifying file");
+            // TODO: 修改文件
             FileUtils.writeStringToFile(tempFile, "Hello world\n", StandardCharsets.UTF_8, true);
             synchronized (callCount) {
                 while (callCount.get() == 0) {

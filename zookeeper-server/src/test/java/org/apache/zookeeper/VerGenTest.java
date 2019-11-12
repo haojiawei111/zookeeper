@@ -67,6 +67,10 @@ public class VerGenTest extends ZKTestCase {
         Assert.assertEquals(expected[1], v.min);
         Assert.assertEquals(expected[2], v.micro);
         Assert.assertEquals(expected[3], v.qualifier);
+        System.out.println(expected[0]+"---"+v.maj);
+        System.out.println(expected[1]+"---"+v.min);
+        System.out.println(expected[2]+"---"+v.micro);
+        System.out.println(expected[3]+"---"+v.qualifier);
     }
 
     @Test

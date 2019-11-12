@@ -180,6 +180,7 @@ public class ZKConfig {
     }
 
     /**
+     * 更新属性
      * Maps the specified <code>key</code> to the specified <code>value</code>.
      * key can not be <code>null</code>. If key is already mapped then the old
      * value of the <code>key</code> is replaced by the specified
@@ -227,6 +228,7 @@ public class ZKConfig {
     }
 
     /**
+     * TODO: 通过读文件更新属性
      * Add a configuration resource. The properties form this configuration will
      * overwrite corresponding already loaded property and system property
      *
@@ -284,7 +286,7 @@ public class ZKConfig {
      * @param defaultValue
      *            default value.
      * @throws NumberFormatException
-     *             when the value is invalid
+     *             when the value is invalid 值解析异常
      * @return return property value as an <code>int</code>, or
      *         <code>defaultValue</code>
      */

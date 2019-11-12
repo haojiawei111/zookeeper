@@ -22,20 +22,22 @@ import org.apache.zookeeper.ZKTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
+/**
+ * 测试FileKeyStoreLoaderBuilderProvider.getBuilderForKeyStoreFileType(KeyStoreFileType type)
+ * 是一个工厂类，通过KeyStoreFileType创建出不同的FileKeyStoreLoader.Builder<?>类
+ */
 public class FileKeyStoreLoaderBuilderProviderTest extends ZKTestCase {
     @Test
     public void testGetBuilderForJKSFileType() {
-        FileKeyStoreLoader.Builder<?> builder =
-                FileKeyStoreLoaderBuilderProvider.getBuilderForKeyStoreFileType(
-                        KeyStoreFileType.JKS);
+        FileKeyStoreLoader.Builder<?> builder = FileKeyStoreLoaderBuilderProvider.getBuilderForKeyStoreFileType(KeyStoreFileType.JKS);
+        //  JKSFileLoader.Builder()
         Assert.assertTrue(builder instanceof JKSFileLoader.Builder);
     }
 
     @Test
     public void testGetBuilderForPEMFileType() {
-        FileKeyStoreLoader.Builder<?> builder =
-                FileKeyStoreLoaderBuilderProvider.getBuilderForKeyStoreFileType(
-                        KeyStoreFileType.PEM);
+        FileKeyStoreLoader.Builder<?> builder = FileKeyStoreLoaderBuilderProvider.getBuilderForKeyStoreFileType(KeyStoreFileType.PEM);
+        // PEMFileLoader.Builder()
         Assert.assertTrue(builder instanceof PEMFileLoader.Builder);
     }
 

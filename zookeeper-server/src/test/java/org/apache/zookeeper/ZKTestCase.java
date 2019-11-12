@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.model.FrameworkMethod;
 
 /**
+ * 非参数化ZK测试的基类。
  * Base class for a non-parameterized ZK test.
  *
  * Basic utilities shared by all tests. Also logging of various events during
@@ -84,8 +85,8 @@ public class ZKTestCase {
     }
 
     /**
-     * Wait for condition to be true; otherwise fail the test if it exceed
-     * timeout
+     * Wait for condition to be true; otherwise fail the test if it exceed timeout
+     * 等待条件为真；否则，如果超过超时，则无法通过测试
      * @param msg       error message to print when fail
      * @param condition condition to evaluate
      * @param timeout   timeout in seconds

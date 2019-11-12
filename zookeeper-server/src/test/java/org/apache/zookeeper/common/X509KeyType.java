@@ -20,6 +20,7 @@ package org.apache.zookeeper.common;
 
 /**
  * Represents a type of key pair used for X509 certs in tests. The two options are RSA or EC (elliptic curve).
+ * 表示测试中用于X509证书的密钥对类型。这两个选项是RSA或EC（椭圆曲线）。
  */
 public enum X509KeyType {
     RSA, EC;
