@@ -465,9 +465,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         hzxid.set(zxid);
     }
 
-
+    /**
+     * 发送会话关闭请求
+     * @param sessionId
+     */
     private void close(long sessionId) {
         Request si = new Request(null, sessionId, 0, OpCode.closeSession, null, null);
+        // 发送本地请求
         setLocalSessionFlag(si);
         submitRequest(si);
     }
@@ -493,7 +497,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * 执行会话过期
+     * TODO：在会话追踪器中执行会话过期
      *
      * 为了使对该会话的关闭操作在整个服务端集群都生效，Zookeeper使用了提交会话关闭请求的方式，并立即交付给PreRequestProcessor进行处理。
      *

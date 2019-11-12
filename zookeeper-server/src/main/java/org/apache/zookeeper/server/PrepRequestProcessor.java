@@ -888,7 +888,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 }
                 List<Txn> txns = new ArrayList<Txn>();
                 // Each op in a multi-op must have the same zxid!
-                // 多操作中的每个操作必须具有相同的zxid！
+                // TODO: 多操作中的每个操作必须具有相同的zxid！
                 long zxid = zks.getNextZxid();
                 KeeperException ke = null;
 
@@ -948,6 +948,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                         txns.add(new Txn(type, bb.array()));
                     }
                 }
+
                 // 给请求头赋值
                 request.setHdr(new TxnHeader(request.sessionId, request.cxid, zxid,
                         Time.currentWallTime(), request.type));
@@ -981,8 +982,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
             case OpCode.checkWatches:
             case OpCode.removeWatches:
             case OpCode.getEphemerals:
-                zks.sessionTracker.checkSession(request.sessionId,
-                        request.getOwner());
+                zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 break;
             default:
                 LOG.warn("unknown type " + request.type);

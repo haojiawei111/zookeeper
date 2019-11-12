@@ -36,8 +36,8 @@ public class ZooKeeperCriticalThread extends ZooKeeperThread {
     }
 
     /**
-     * This will be used by the uncaught exception handler and make the system
-     * exit.
+     * This will be used by the uncaught exception handler and make the system exit.
+     * 这将由未捕获的异常处理程序使用，并使系统退出
      *
      * @param threadName
      *            - thread name

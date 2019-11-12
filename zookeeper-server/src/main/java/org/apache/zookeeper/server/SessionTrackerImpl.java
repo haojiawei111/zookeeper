@@ -45,17 +45,18 @@ import org.slf4j.LoggerFactory;
  * 它总是将滴答间隔四舍五入以提供一种宽限期。因此，会话分批到期，会话到期
  * 在给定的时间间隔内。
  */
-public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
-        SessionTracker {
+public class SessionTrackerImpl extends ZooKeeperCriticalThread implements SessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(SessionTrackerImpl.class);
 
     // session都存放在一个sessionById的map里面
+    // <sessionId,SessionImpl>
     protected final ConcurrentHashMap<Long, SessionImpl> sessionsById = new ConcurrentHashMap<Long, SessionImpl>();
 
     private final ExpiryQueue<SessionImpl> sessionExpiryQueue;
 
     // key是sessionId,value是该会话的超时周期(不是时间点)
     private final ConcurrentMap<Long, Integer> sessionsWithTimeout;
+
     // 一下个会话的id
     private final AtomicLong nextSessionId = new AtomicLong();
 
@@ -70,7 +71,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         final long sessionId;//会话id，全局唯一
         final int timeout;//会话超时时间
         boolean isClosing;//是否被关闭,如果关闭则不再处理该会话的新请求
-
+        // 绑定的对象
         Object owner;
 
         public long getSessionId() { return sessionId; }
@@ -114,11 +115,13 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         this.expirer = expirer;
         this.sessionExpiryQueue = new ExpiryQueue<SessionImpl>(tickTime);
         this.sessionsWithTimeout = sessionsWithTimeout;
+        // TODO: 初始化SessionId
         this.nextSessionId.set(initializeNextSession(serverId));
+        // 添加会话
         for (Entry<Long, Integer> e : sessionsWithTimeout.entrySet()) {
             trackSession(e.getKey(), e.getValue());
         }
-
+        // 验证myid
         EphemeralType.validateServerId(serverId);
     }
 
@@ -131,6 +134,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
 
     /**
      * Returns a mapping from time to session IDs of sessions expiring at that time.
+     * 返回从时间到那时到期的会话的会话ID的映射。
      */
     synchronized public Map<Long, Set<Long>> getSessionExpiryMap() {
         // Convert time -> sessions map to time -> session IDs map
@@ -156,6 +160,9 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         return sw.toString();
     }
 
+    /**
+     * 会话追踪器线程逻辑
+     */
     @Override
     public void run() {
         try {
@@ -183,7 +190,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         LOG.info("SessionTrackerImpl exited loop!");
     }
 
-    // 会话激活
+    // TODO: 会话激活
     // 会了保持客户端会话的有效性，客户端会在会话超时时间过期范围内向服务端发送PING请求来保持会话的有效性（心跳检测）。
     // 同时，服务端需要不断地接收来自客户端的心跳检测，并且需要重新激活对应的客户端会话，这个重新激活过程称为TouchSession。
     // 会话激活不仅能够使服务端检测到对应客户端的存货性，同时也能让客户端自己保持连接状态,
@@ -236,6 +243,10 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         return sessionsWithTimeout.get(sessionId);
     }
 
+    /**
+     * TODO: 这里只是标记了会话过期
+     * @param sessionId
+     */
     synchronized public void setSessionClosing(long sessionId) {
         if (LOG.isTraceEnabled()) {
             LOG.trace("Session closing: 0x" + Long.toHexString(sessionId));
@@ -244,6 +255,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         if (s == null) {
             return;
         }
+        // TODO: 标记会话过期
         s.isClosing = true;
     }
 
@@ -271,7 +283,13 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         }
     }
 
+    /**
+     * 创建Session
+     * @param sessionTimeout
+     * @return
+     */
     public long createSession(int sessionTimeout) {
+        // 创建SessionId
         long sessionId = nextSessionId.getAndIncrement();
         trackSession(sessionId, sessionTimeout);
         return sessionId;
@@ -283,6 +301,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
 
         SessionImpl session = sessionsById.get(id);
         if (session == null){
+            // todo: 创建SessionImpl
             session = new SessionImpl(id, sessionTimeout);
         }
 
@@ -316,6 +335,7 @@ public class SessionTrackerImpl extends ZooKeeperCriticalThread implements
         return sessionsById.containsKey(sessionId);
     }
 
+    // 验证会话是都存在
     public synchronized void checkSession(long sessionId, Object owner)
             throws KeeperException.SessionExpiredException,
             KeeperException.SessionMovedException,

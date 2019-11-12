@@ -207,6 +207,7 @@ public class ExpiryQueue<E> {
 
     /**
      * Returns an unmodifiable view of the expiration time -> elements mapping.
+     * TODO: 返回到期时间->元素映射的不可修改的视图。
      */
     public Map<Long, Set<E>> getExpiryMap() {
         return Collections.unmodifiableMap(expiryMap);
