@@ -152,6 +152,7 @@ public class NIOServerCnxn extends ServerCnxn {
             for (ByteBuffer buffer : buffers) {
                 outgoingBuffers.add(buffer);
             }
+            // TODO： 注意这一最后添加了一个packetSentinel
             outgoingBuffers.add(packetSentinel);
         }
         requestInterestOpsUpdate();
@@ -219,9 +220,11 @@ public class NIOServerCnxn extends ServerCnxn {
     public void enableSelectable() {
         selectable.set(true);
     }
+
     // 添加感兴趣事件请求
     private void requestInterestOpsUpdate() {
         if (isSelectable()) {
+            // 如果是可被选择的
             selectorThread.addInterestOpsUpdateRequest(sk);
         }
     }
@@ -269,6 +272,7 @@ public class NIOServerCnxn extends ServerCnxn {
                     packetSent();
                 }
                 if (bb.remaining() > 0) {//如果还有内容没有发送
+                    //TODO: 这个bb没有写完呢！不要删除。这里用的是ByteBuffer，发送了的部分数据下一次在发生会从上一次发送的位置发送
                     break;
                 }
                 outgoingBuffers.remove();
@@ -395,8 +399,10 @@ public class NIOServerCnxn extends ServerCnxn {
 
                 // return limit - position;返回limit和position之间相对位置差
                 if (incomingBuffer.remaining() == 0) {
+                    // 读满了
                     boolean isPayload;
-                    if (incomingBuffer == lenBuffer) { // start of next request 开始下一个请求
+                    if (incomingBuffer == lenBuffer) {
+                        // TODO: 读了一个请求包的长度
                         //解析上文中读取的报文总长度,同时为"incomingBuffer"分配len的空间供读取全部报文
                         incomingBuffer.flip();
                         //为incomeingBuffer分配空间时还包括了判断是否是"4字命令"的逻辑
@@ -404,6 +410,7 @@ public class NIOServerCnxn extends ServerCnxn {
                         incomingBuffer.clear();
                     } else {
                         // continuation
+                        // TODO:读了一个请求包的消息体
                         //2.incomingBuffer不是lenBuffer,此时incomingBuffer的内容是payload
                         isPayload = true;
                     }
@@ -438,7 +445,7 @@ public class NIOServerCnxn extends ServerCnxn {
             close();
         } catch (EndOfStreamException e) {
             LOG.warn(e.getMessage());
-            // expecting close to log session closure
+            // expecting close to log session closure预计接近日志会话关闭
             close();
         } catch (ClientCnxnLimitException e) {
             // Common case exception, print at debug level
@@ -623,7 +630,7 @@ public class NIOServerCnxn extends ServerCnxn {
     private boolean readLength(SelectionKey k) throws IOException {
         // Read the length, now get the buffer 读取长度，现在获取缓冲区
         int len = lenBuffer.getInt();
-
+        // 检查四字母词
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
         }
@@ -633,6 +640,7 @@ public class NIOServerCnxn extends ServerCnxn {
         if (!isZKServerRunning()) {
             throw new IOException("ZooKeeperServer not running");
         }
+        // 创建消息体接收buffer
         incomingBuffer = ByteBuffer.allocate(len);
         return true;
     }

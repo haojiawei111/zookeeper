@@ -40,19 +40,18 @@ public final class ServerMetrics {
      * Dummy instance useful for tests.
      * 虚拟实例对测试很有用。这个属性是测试用的
      */
-    public static final ServerMetrics NULL_METRICS
-            = new ServerMetrics(NullMetricsProvider.INSTANCE);
+    public static final ServerMetrics NULL_METRICS = new ServerMetrics(NullMetricsProvider.INSTANCE);
 
     /**
      * Dummy instance useful for tests. 测试用的
      */
-    public static final ServerMetrics DEFAULT_METRICS_FOR_TESTS
-            = new ServerMetrics(new DefaultMetricsProvider());
+    public static final ServerMetrics DEFAULT_METRICS_FOR_TESTS = new ServerMetrics(new DefaultMetricsProvider());
 
     /**
      * Real instance used for tracking server side metrics. The final value is
      * assigned after the {@link MetricsProvider} bootstrap.
-     * 用于跟踪服务器端指标的真实实例。在{@link MetricsProvider}引导程序之后分配最终值。
+     * TODO: 用于跟踪服务器端指标的真实实例。在{@link MetricsProvider}引导程序之后分配最终值。
+     * TODO: 这个实例才是真正使用的，并且可以全局访问
      */
     private static volatile ServerMetrics CURRENT = DEFAULT_METRICS_FOR_TESTS;
 
@@ -72,6 +71,7 @@ public final class ServerMetrics {
 
     private ServerMetrics(MetricsProvider metricsProvider) {
         this.metricsProvider = metricsProvider;
+        // DefaultMetricsContext 内部就是一堆map
         MetricsContext metricsContext = this.metricsProvider.getRootContext();
 
         FSYNC_TIME = metricsContext.getSummary("fsynctime", DetailLevel.BASIC);

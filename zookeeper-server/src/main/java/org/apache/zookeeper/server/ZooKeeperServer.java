@@ -185,7 +185,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         LOG.info(INT_BUFFER_STARTING_SIZE_BYTES + " = " + intBufferStartingSizeBytes);
     }
 
-    // Connection throttling
+    // Connection throttling 连接节流
     private BlueThrottle connThrottle;
 
     void removeCnxn(ServerCnxn cnxn) {
@@ -196,6 +196,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      * Creates a ZooKeeperServer instance. Nothing is setup, use the setX
      * methods to prepare the instance (eg datadir, datalogdir, ticktime,
      * builder, etc...)
+     * 创建一个ZooKeeperServer实例，但什么都没有设置，
+     * 请使用setX 方法准备实例（例如，datadir，datalogdir，ticktime，builder等）。
      *
      * @throws IOException
      */

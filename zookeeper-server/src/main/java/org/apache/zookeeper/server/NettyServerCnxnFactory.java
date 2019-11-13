@@ -313,10 +313,11 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
 
     NettyServerCnxnFactory() {
         x509Util = new ClientX509Util();
+
         // 创建netty服务端的模板代码
-        EventLoopGroup bossGroup = NettyUtils.newNioOrEpollEventLoopGroup(
-                NettyUtils.getClientReachableLocalInetAddressCount());
+        EventLoopGroup bossGroup = NettyUtils.newNioOrEpollEventLoopGroup(NettyUtils.getClientReachableLocalInetAddressCount());
         EventLoopGroup workerGroup = NettyUtils.newNioOrEpollEventLoopGroup();
+
         ServerBootstrap bootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NettyUtils.nioOrEpollServerSocketChannel())

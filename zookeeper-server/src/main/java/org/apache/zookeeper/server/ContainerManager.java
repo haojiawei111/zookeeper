@@ -58,7 +58,9 @@ public class ContainerManager {
     public ContainerManager(ZKDatabase zkDb, RequestProcessor requestProcessor,int checkIntervalMs, int maxPerMinute) {
         this.zkDb = zkDb;
         this.requestProcessor = requestProcessor;
+        // 默认60000
         this.checkIntervalMs = checkIntervalMs;
+        // 默认10000
         this.maxPerMinute = maxPerMinute;
         // 创建定时器，这是守护线程
         timer = new Timer("ContainerManagerTask", true);
@@ -88,6 +90,7 @@ public class ContainerManager {
                     }
                 }
             };
+            // 通过CAS修改task
             if (task.compareAndSet(null, timerTask)) {
                 // 提交定时任务
                 timer.scheduleAtFixedRate(timerTask, checkIntervalMs,
@@ -123,12 +126,11 @@ public class ContainerManager {
             long startMs = Time.currentElapsedTime();
 
             ByteBuffer path = ByteBuffer.wrap(containerPath.getBytes());
-            // 创建删除请求
+            // TODO: 创建删除请求
             Request request = new Request(null, 0, 0,
                     ZooDefs.OpCode.deleteContainer, path, null);
             try {
-                LOG.info("Attempting to delete candidate container: {}",
-                        containerPath);
+                LOG.info("Attempting to delete candidate container: {}", containerPath);
                 //只是将删除节点的请求发送给PrepRequestProcessor,并未真正删除该节点
                 requestProcessor.processRequest(request);
             } catch (Exception e) {
@@ -153,6 +155,7 @@ public class ContainerManager {
     }
 
     // VisibleForTesting
+    // 可见用于测试
     protected Collection<String> getCandidates() {
         Set<String> candidates = new HashSet<String>();
         // 遍历获取所有容器节点
@@ -165,6 +168,7 @@ public class ContainerManager {
                 would be immediately be deleted.
              */
             if ((node != null) && (node.stat.getCversion() > 0) && (node.getChildren().isEmpty())) {
+                // node的没有子节点
                 candidates.add(containerPath);
             }
         }
@@ -174,6 +178,7 @@ public class ContainerManager {
             if (node != null) {
                 Set<String> children = node.getChildren();
                 if (children.isEmpty()) {
+                    // ttl节点没有子节点
                     if (EphemeralType.get(node.stat.getEphemeralOwner()) == EphemeralType.TTL ) {
                         long elapsed = getElapsed(node);
                         long ttl = EphemeralType.TTL.getValue(node.stat.getEphemeralOwner());

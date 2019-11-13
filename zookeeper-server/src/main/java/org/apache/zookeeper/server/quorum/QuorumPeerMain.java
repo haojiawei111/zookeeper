@@ -151,8 +151,7 @@ public class QuorumPeerMain {
       MetricsProvider metricsProvider;
       try {
           // 配置并启动DefaultMetricsProvider
-        metricsProvider = MetricsProviderBootstrap
-                      .startMetricsProvider(config.getMetricsProviderClassName(),// 配置文件中 metricsProvider.className，默认是DefaultMetricsProvider
+        metricsProvider = MetricsProviderBootstrap.startMetricsProvider(config.getMetricsProviderClassName(),// 配置文件中 metricsProvider.className，默认是DefaultMetricsProvider
                                             config.getMetricsProviderConfiguration());// 配置文件中已 metricsProvider. 开头的
       } catch (MetricsProviderLifeCycleException error) {
         throw new IOException("Cannot boot MetricsProvider " + config.getMetricsProviderClassName(),

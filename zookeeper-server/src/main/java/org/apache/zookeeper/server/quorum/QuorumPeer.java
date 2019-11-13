@@ -173,8 +173,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     // 这个类记录每一个配置中server的主要信息
     // 每个server.X记录代表集群中的一个服务，QuorumPeerConfig会构建一个QuorumServer对象
     public static class QuorumServer {
+        // server的集群通信地址
         public InetSocketAddress addr = null;
-
+        // server的选举地址
         public InetSocketAddress electionAddr = null;
         
         public InetSocketAddress clientAddr = null;

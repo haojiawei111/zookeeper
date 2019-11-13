@@ -271,6 +271,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
          */
         private void pauseAccept(long millisecs) {
             // keykey.interestOps(0) 代表不监听任何东西
+            // TODO: 这里把ServerSocketChannel暂停了一会
             acceptKey.interestOps(0);
             try {
                 selector.select(millisecs);
@@ -327,14 +328,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
                         "Unable to add connection to selector queue"
                         + (stopped ? " (shutdown in progress)" : ""));
                 }
-
                 // 打日志
                 acceptErrorLogger.flush();
             } catch (IOException e) {
                 // accept, maxClientCnxns, configureBlocking
                 ServerMetrics.getMetrics().CONNECTION_REJECTED.add(1);
-                acceptErrorLogger.rateLimitLog(
-                    "Error accepting new connection: " + e.getMessage());
+                acceptErrorLogger.rateLimitLog("Error accepting new connection: " + e.getMessage());
                 fastCloseSock(sc);
             }
             return accepted;
@@ -609,6 +608,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
      * 这个线程创建一个
      * This thread is responsible for closing stale connections
      * so that connections on which no session is established are properly expired.
+     *
      * 此线程负责关闭过时连接，以便未建立会话的连接正确到期。
      */
     private class ConnectionExpirerThread extends ZooKeeperThread {

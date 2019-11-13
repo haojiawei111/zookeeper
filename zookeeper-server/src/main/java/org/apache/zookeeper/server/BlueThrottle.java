@@ -25,6 +25,7 @@ import org.apache.zookeeper.common.Time;
 /**
  * Implements a token-bucket based rate limiting mechanism with optional
  * probabilistic dropping inspired by the BLUE queue management algorithm [1].
+ * 实现了基于令牌桶的速率限制机制，该机制具有受BLUE队列管理算法启发的可选概率丢弃功能[1]。
  *
  * The throttle provides the {@link #checkLimit(int)} method which provides
  * a binary yes/no decision.
@@ -67,6 +68,28 @@ import org.apache.zookeeper.common.Time;
  * the drop probability will decrease, eventually returning to zero if possible.
  *
  * [1] "BLUE: A New Class of Active Queue Management Algorithms"
+ *
+ * 节流阀提供了{@link #checkLimit（int）}方法，该方法提供了二进制“是/否”决定。
+ *
+ * 核心令牌存储区算法从基于<code> maxTokens </ code>设置的一组初始令牌开始。每次{@link #checkLimit（int）}调用都会分配令牌，如果没有足够的令牌来满足给定请求，该调用将失败。
+ *
+ * 令牌桶随时间重新填充，每<code> fillTime </ code>毫秒提供一次<code> fillCount </ code>令牌，上限为<code> maxTokens </ code>。
+ *
+ * 这种设计允许节流阀允许短脉冲通过，同时仍限制每个时间间隔的请求总数。
+ *
+ * 对于诸如请求或连接限制之类的事情，纯令牌桶方法的一个问题是请求的挂钟到达时间会影响请求通过与否的可能性。在恒定负载下，这会导致请求饥饿，因为请求持续不断地晚于大多数请求到达。
+ *
+ * 为了解决这个问题，该节流阀还可以提供概率下降。只要<code> freezeTime </ code>设置为<code> -1 </ code>以外的值，就可以启用此功能。
+ *
+ * 概率算法以初始下降概率0开始，并大致每<code> freezeTime </ code>毫秒调整一次此概率。在<code> freezeTime </ code>之后的第一个请求，该算法检查令牌存储区。如果令牌存储区为空，则丢弃概率会增加<code> dropIncrease </ code>，最大值为<code> 1 </ code>。否则，如果存储桶的令牌不足量小于<code> decreasePoint * maxTokens </ code>，则概率降低<code> dropDecrease </ code>。
+ *
+ * 给定对{@link #checkLimit（int）}的调用后，首先会根据当前的丢弃概率随机丢弃请求，然后仅对令牌桶中尚存的请求进行检查。
+ *
+ * 在恒定负载下，概率算法将适应丢弃频率，该丢弃频率应将请求保持在令牌限制之内。当负载下降时，下降的可能性将降低，如果可能的话，最终将返回零。
+ *
+ * [1]“蓝色：一种新的主​​动队列管理算法”
+ *
+ *
  **/
 
 public class BlueThrottle {

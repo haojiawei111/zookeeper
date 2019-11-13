@@ -38,7 +38,9 @@ public class ManagedUtil {
         boolean enabled = false;
 
         try {
+            // 加载LoggerRepository类并初始化
             Class.forName("org.apache.log4j.spi.LoggerRepository");
+
 
             // 系统配置里拿
             if (Boolean.getBoolean("zookeeper.jmx.log4j.disable")) {
@@ -65,7 +67,7 @@ public class ManagedUtil {
     // 注册Log4jMBeans
     @SuppressWarnings("rawtypes")
     public static void registerLog4jMBeans() throws JMException {
-        if (isLog4jJmxEnabled()) {
+        if (isLog4jJmxEnabled()) {// 默认开启的
             LOG.debug("registerLog4jMBeans()");
             MBeanServer mbs = MBeanRegistry.getInstance().getPlatformMBeanServer();
 

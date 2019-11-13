@@ -31,12 +31,10 @@ public abstract class MetricsProviderBootstrap {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetricsProviderBootstrap.class);
 
-    public static MetricsProvider startMetricsProvider(String metricsProviderClassName, Properties configuration)
-            throws MetricsProviderLifeCycleException {
+    public static MetricsProvider startMetricsProvider(String metricsProviderClassName, Properties configuration) throws MetricsProviderLifeCycleException {
         try {
             // 反射创建MetricsProvider对象，默认是DefaultMetricsProvider
-            MetricsProvider metricsProvider = (MetricsProvider) Class.forName(metricsProviderClassName,
-                    true, Thread.currentThread().getContextClassLoader()).newInstance();
+            MetricsProvider metricsProvider = (MetricsProvider) Class.forName(metricsProviderClassName, true, Thread.currentThread().getContextClassLoader()).newInstance();
             metricsProvider.configure(configuration);
             metricsProvider.start();
             return metricsProvider;

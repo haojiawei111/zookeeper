@@ -48,6 +48,7 @@ public abstract class ServerCnxnFactory {
 
     // Tells whether SSL is enabled on this ServerCnxnFactory
     // 判断此ServerCnxnFactory上是否启用了SSL
+    // 默认是false
     protected boolean secure;
 
     /**
@@ -147,7 +148,11 @@ public abstract class ServerCnxnFactory {
     final public void setZooKeeperServer(ZooKeeperServer zks) {
         this.zkServer = zks;
         if (zks != null) {
+            // ZK原生的NIO是不支持secure
+            // 如果配置了netty，配置文件中设置才有效
             if (secure) {
+                // ZK的原生NIO是不会走到这里来的
+                // netty才有可能走到这里来
                 zks.setSecureServerCnxnFactory(this);
             } else {
                 zks.setServerCnxnFactory(this);
@@ -215,8 +220,10 @@ public abstract class ServerCnxnFactory {
 
     // Connection set is relied on heavily by four letter commands
     // Construct a ConcurrentHashSet using a ConcurrentHashMap
-    protected final Set<ServerCnxn> cnxns = Collections.newSetFromMap(
-        new ConcurrentHashMap<ServerCnxn, Boolean>());
+    // 连接集主要依靠四个字母命令
+    // ​/使用ConcurrentHashMap构造ConcurrentHashSet
+    protected final Set<ServerCnxn> cnxns = Collections.newSetFromMap(new ConcurrentHashMap<ServerCnxn, Boolean>());
+
     public void unregisterConnection(ServerCnxn serverCnxn) {
         ConnectionBean jmxConnectionBean = connectionBeans.remove(serverCnxn);
         if (jmxConnectionBean != null){

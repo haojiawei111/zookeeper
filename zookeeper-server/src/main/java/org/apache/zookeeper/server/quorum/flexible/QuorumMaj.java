@@ -35,6 +35,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
  * 此类为多数仲裁实现验证器。实施是直截了当
  */
 public class QuorumMaj implements QuorumVerifier {
+    // <myid,QuorumServer>
     private Map<Long, QuorumServer> allMembers = new HashMap<Long, QuorumServer>();
     private Map<Long, QuorumServer> votingMembers = new HashMap<Long, QuorumServer>();
     private Map<Long, QuorumServer> observingMembers = new HashMap<Long, QuorumServer>();

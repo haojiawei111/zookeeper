@@ -194,7 +194,8 @@ public class QuorumPeerConfig {
                FileInputStream inConfig = new FileInputStream(dynamicConfigFileStr);
                try {
                    dynamicCfg.load(inConfig);
-                   if (dynamicCfg.getProperty("version") != null) {//动态文件里面不应该手动配置version字段
+                   //TODO: 动态文件里面不应该手动配置version字段
+                   if (dynamicCfg.getProperty("version") != null) {
                        throw new ConfigException("dynamic file shouldn't have version inside");
                    }
 
@@ -509,6 +510,8 @@ public class QuorumPeerConfig {
             if (isDistributed() && isReconfigEnabled()) {
                 // we don't backup static config for standalone mode.
                 // we also don't backup if reconfig feature is disabled.
+                // 我们不会将静态配置备份为独立模式。
+                // 如果禁用了重新配置功能，我们也不会备份。
                 backupOldConfig();
             }
         }
@@ -539,6 +542,8 @@ public class QuorumPeerConfig {
     /**
      * Backward compatibility -- It would backup static config file on bootup
      * if users write dynamic configuration in "zoo.cfg".
+     * 向后兼容
+     *     如果用户在“ zoo.cfg”中编写动态配置，它将在启动时备份静态配置文件。
      */
     private void backupOldConfig() throws IOException {
         new AtomicFileWritingIdiom(new File(configFileStr + ".bak"), new OutputStreamStatement() {
@@ -727,7 +732,7 @@ public class QuorumPeerConfig {
         // isHierarchical=true  返回QuorumHierarchical
         // isHierarchical=false 返回QuorumMaj
         QuorumVerifier qv = createQuorumVerifier(dynamicConfigProp, isHierarchical);
-        // TODO: 返回参加投票的人数
+        // TODO: 返回参加投票的人数，如果是单机模式，numParticipators为0
         int numParticipators = qv.getVotingMembers().size();
         // TODO: 返回观察者人数
         int numObservers = qv.getObservingMembers().size();
@@ -740,6 +745,7 @@ public class QuorumPeerConfig {
                 throw new IllegalArgumentException("Observers w/o participants is an invalid configuration");
             }
         } else if (numParticipators == 1 && standaloneEnabled) {
+            // TODO: 这里配置有问题
             // HBase currently adds a single server line to the config, for
             // b/w compatibility reasons we need to keep this here. If standaloneEnabled
             // is true, the QuorumPeerMain script will create a standalone server instead
@@ -757,7 +763,7 @@ public class QuorumPeerConfig {
                     LOG.warn("Non-optimial configuration, consider an odd number of servers.");
                 }
             }
-
+            // TODO: 集群模式一般走这里
             for (QuorumServer s : qv.getVotingMembers().values()) {
                 if (s.electionAddr == null)
                     throw new IllegalArgumentException(

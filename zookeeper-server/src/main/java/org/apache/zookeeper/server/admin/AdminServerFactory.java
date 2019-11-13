@@ -37,8 +37,8 @@ public class AdminServerFactory {
      *      * to create a JettyAdminServer, rather than referencing the class directly,
      *      * so that it's ok to omit Jetty from the classpath if a user doesn't wish
      *      * to pull in Jetty with ZooKeeper.
-     *      此方法封装了我们是否应该使用* JettyAdminServer（即启用了AdminServer）或DummyAdminServer *（即禁用了AdminServer）的逻辑。
-     *      它在尝试*创建JettyAdminServer时使用反射，而不是直接引用该类，*因此如果用户不希望*使用ZooKeeper引入Jetty，则可以从类路径中省略Jetty。
+     *      此方法封装了我们是否应该使用*JettyAdminServer（即启用了AdminServer）或DummyAdminServer （即禁用了AdminServer）的逻辑。
+     *      它在尝试创建JettyAdminServer时使用反射，而不是直接引用该类，*因此如果用户不希望*使用ZooKeeper引入Jetty，则可以从类路径中省略Jetty。
      */
     public static AdminServer createAdminServer() {
 		if (!"false".equals(System.getProperty("zookeeper.admin.enableServer"))) {
