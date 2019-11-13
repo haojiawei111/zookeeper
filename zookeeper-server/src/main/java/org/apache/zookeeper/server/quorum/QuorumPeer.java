@@ -504,10 +504,10 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
      * QuorumVerifier implementation; default (majority).
      */
 
-    //last committed quorum verifier
+    //last committed quorum verifier 最后提交的仲裁验证者
     private QuorumVerifier quorumVerifier;
     
-    //last proposed quorum verifier
+    //last proposed quorum verifier 最后提出的仲裁验证者
     private QuorumVerifier lastSeenQuorumVerifier = null;
 
     // Lock object that guard access to quorumVerifier and lastSeenQuorumVerifier.
@@ -573,12 +573,14 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     /**
      * Whether learners in this quorum should create new sessions as local.
      * False by default to preserve existing behavior.
+     * 在此法定人数中的学习者是否应在本地创建新的会话。默认情况下为False，以保留现有行为。
      */
     protected boolean localSessionsEnabled = false;
 
     /**
      * Whether learners in this quorum should upgrade local sessions to
      * global. Only matters if local sessions are enabled.
+     * 在此法定人数内的学习者是否应将本地Sessions升级为全球Sessions。仅在启用本地会话时才重要。
      */
     protected boolean localSessionsUpgradingEnabled = true;
 
@@ -922,7 +924,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     /**
-     * 主要初始化authServer和authLearner对象
+     * TODO 主要初始化authServer和authLearner对象
      * @throws SaslException
      */
     public void initialize() throws SaslException {
@@ -1571,7 +1573,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return -1;
     }
     
-    /** Whether local sessions are enabled */
+    /** 是否启用本地会话*/
     public boolean areLocalSessionsEnabled() {
         return localSessionsEnabled;
     }
@@ -1698,11 +1700,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             Map<Long, QuorumServer> committedView = quorumVerifier.getAllMembers();
             for (Entry<Long, QuorumServer> e : lastSeenQuorumVerifier.getAllMembers().entrySet()) {
                 if (e.getKey() != getId() && !committedView.containsKey(e.getKey()))
+                    // 如果e的ID不等于自己的ID并且不再committedView中存在就连接
                     qcm.connectOne(e.getKey());
             }
         }
     }
-
+    // TODO: 动态配置文件调用它
     public void setLastSeenQuorumVerifier(QuorumVerifier qv, boolean writeToDisk){
         // If qcm is non-null, we may call qcm.connectOne(), which will take the lock on qcm
         // and then take QV_LOCK.  Take the locks in the same order to ensure that we don't
@@ -1721,8 +1724,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 }
                 // assuming that a version uniquely identifies a configuration, so if
                 // version is the same, nothing to do here.
-                if (lastSeenQuorumVerifier != null &&
-                        lastSeenQuorumVerifier.getVersion() == qv.getVersion()) {
+                if (lastSeenQuorumVerifier != null && lastSeenQuorumVerifier.getVersion() == qv.getVersion()) {
                     return;
                 }
                 lastSeenQuorumVerifier = qv;
@@ -1749,6 +1751,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             if ((quorumVerifier != null) && (quorumVerifier.getVersion() >= qv.getVersion())) {
                 // this is normal. For example - server found out about new config through FastLeaderElection gossiping
                 // and then got the same config in UPTODATE message so its already known
+                // 这很正常。例如-服务器通过FastLeaderElection闲聊发现了有关新配置的信息，然后在UPTODATE消息中获得了相同的配置，因此它已经为人所知
                 LOG.debug(getId() + " setQuorumVerifier called with known or old config " + qv.getVersion() +
                         ". Current version: " + quorumVerifier.getVersion());
                 return quorumVerifier;
@@ -1760,6 +1763,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
             if (writeToDisk) {
                 // some tests initialize QuorumPeer without a static config file
+                // 一些测试在没有静态配置文件的情况下初始化QuorumPeer
                 if (configFilename != null) {
                     try {
                         String dynamicConfigFilename = makeDynamicConfigFilename(
@@ -1780,6 +1784,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             if (qv.getVersion() == lastSeenQuorumVerifier.getVersion()) {
                 QuorumPeerConfig.deleteFile(getNextDynamicConfigFilename());
             }
+            // 本机的QuorumServer
             QuorumServer qs = qv.getAllMembers().get(getId());
             if (qs != null) {
                 setAddrs(qs.addr, qs.electionAddr, qs.clientAddr);
@@ -2136,11 +2141,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         observerMasters.clear();
         StringBuilder sb = new StringBuilder();
         for (QuorumServer server : quorumVerifier.getVotingMembers().values()) {
+            // 遍历参与投票的QuorumServer
             InetSocketAddress addr = new InetSocketAddress(server.addr.getAddress(), observerMasterPort);
+            // TODO: 添加观察者了IP
             observerMasters.add(new QuorumServer(server.id, addr));
             sb.append(addr).append(",");
         }
-        LOG.info("Updated learner master list to be {}", sb.toString());
+        LOG.info("将学习者主列表更新为 Updated learner master list to be {}", sb.toString());
         Collections.shuffle(observerMasters);
     }
 

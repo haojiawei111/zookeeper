@@ -570,8 +570,8 @@ public abstract class X509Util implements Closeable, AutoCloseable {
     public void enableCertFileReloading() throws IOException {
         LOG.info("enabling cert file reloading");
         ZKConfig config = zkConfig == null ? new ZKConfig() : zkConfig;
-        FileChangeWatcher newKeyStoreFileWatcher =
-                newFileChangeWatcher(config.getProperty(sslKeystoreLocationProperty));
+        // TODO: 监控文件变化
+        FileChangeWatcher newKeyStoreFileWatcher = newFileChangeWatcher(config.getProperty(sslKeystoreLocationProperty));
         if (newKeyStoreFileWatcher != null) {
             // stop old watcher if there is one
             if (keyStoreFileWatcher != null) {
@@ -580,8 +580,8 @@ public abstract class X509Util implements Closeable, AutoCloseable {
             keyStoreFileWatcher = newKeyStoreFileWatcher;
             keyStoreFileWatcher.start();
         }
-        FileChangeWatcher newTrustStoreFileWatcher =
-                newFileChangeWatcher(config.getProperty(sslTruststoreLocationProperty));
+        // TODO: 监控文件变化
+        FileChangeWatcher newTrustStoreFileWatcher = newFileChangeWatcher(config.getProperty(sslTruststoreLocationProperty));
         if (newTrustStoreFileWatcher != null) {
             // stop old watcher if there is one
             if (trustStoreFileWatcher != null) {

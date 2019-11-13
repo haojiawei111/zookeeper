@@ -335,6 +335,7 @@ public class NettyServerCnxn extends ServerCnxn {
      * @param buf the message bytes to process.
      */
     void processMessage(ByteBuf buf) {
+        // TODO: 只应该从事件循环线程调用
         checkIsInEventLoop("processMessage");
         if (LOG.isDebugEnabled()) {
             LOG.debug("0x{} queuedBuffer: {}",
@@ -349,6 +350,7 @@ public class NettyServerCnxn extends ServerCnxn {
         }
 
         if (throttled.get()) {
+            //需要限制流量
             LOG.debug("Received message while throttled");
             // we are throttled, so we need to queue
             if (queuedBuffer == null) {

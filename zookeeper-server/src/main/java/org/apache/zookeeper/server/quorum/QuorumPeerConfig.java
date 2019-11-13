@@ -235,6 +235,7 @@ public class QuorumPeerConfig {
                            break;
                        }
                    }
+                   // 这个只有开启了动态配置才生效
                    lastSeenQuorumVerifier = createQuorumVerifier(dynamicConfigNextCfg, isHierarchical);
                } catch (IOException e) {
                    LOG.warn("NextQuorumVerifier is initiated to null");
@@ -890,7 +891,7 @@ public class QuorumPeerConfig {
         return quorumVerifier;
     }
     
-    public QuorumVerifier getLastSeenQuorumVerifier() {   
+    public QuorumVerifier getLastSeenQuorumVerifier() {
         return lastSeenQuorumVerifier;
     }
 

@@ -206,9 +206,12 @@ public class QuorumPeerMain {
 
           quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);
           if (config.getLastSeenQuorumVerifier()!=null) {
+              // 开启了动态配置
               quorumPeer.setLastSeenQuorumVerifier(config.getLastSeenQuorumVerifier(), false);
           }
+
           quorumPeer.initConfigInZKDatabase();
+
           quorumPeer.setCnxnFactory(cnxnFactory); // 如果配置文件中没有配置clientPortAddress，则cnxnFactory为空
           quorumPeer.setSecureCnxnFactory(secureCnxnFactory); // 如果配置文件中没有配置secureClientPortAddress，则secureCnxnFactory为空
           quorumPeer.setSslQuorum(config.isSslQuorum());
@@ -230,6 +233,8 @@ public class QuorumPeerMain {
               quorumPeer.setQuorumLearnerLoginContext(config.quorumLearnerLoginContext);
           }
           quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
+
+          // TODO: 初始化
           quorumPeer.initialize();
 
           if(config.jvmPauseMonitorToRun) {

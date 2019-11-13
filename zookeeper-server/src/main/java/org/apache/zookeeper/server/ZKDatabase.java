@@ -653,11 +653,13 @@ public class ZKDatabase {
     public synchronized void initConfigInZKDatabase(QuorumVerifier qv) {
         if (qv == null) return; // only happens during tests
         try {
+            // /zookeeper/config
             if (this.dataTree.getNode(ZooDefs.CONFIG_NODE) == null) {
-                // should only happen during upgrade
+                // should only happen during upgrade 应该只在升级期间发生
                 LOG.warn("configuration znode missing (should only happen during upgrade), creating the node");
                 this.dataTree.addConfigNode();
             }
+            // TODO: 向/zookeeper/config下面设置数据
             this.dataTree.setData(ZooDefs.CONFIG_NODE, qv.toString().getBytes(), -1, qv.getVersion(), Time.currentWallTime());
         } catch (NoNodeException e) {
             System.out.println("configuration node missing - should not happen");

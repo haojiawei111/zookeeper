@@ -47,11 +47,9 @@ public class LeaderRequestProcessor implements RequestProcessor {
     }
 
     @Override
-    public void processRequest(Request request)
-            throws RequestProcessorException {
+    public void processRequest(Request request) throws RequestProcessorException {
         // Check if this is a local session and we are trying to create
         // an ephemeral node, in which case we upgrade the session
-        // 检查这是否是本地会话，我们正在尝试创建一个临时节点，在这种情况下我们升级会话
         Request upgradeRequest = null;
         try {
             upgradeRequest = lzks.checkUpgradeSession(request);
@@ -61,12 +59,14 @@ public class LeaderRequestProcessor implements RequestProcessor {
                 request.getHdr().setType(OpCode.error);
                 request.setTxn(new ErrorTxn(ke.code().intValue()));
             }
+            // TODO: 设置了异常
             request.setException(ke);
             LOG.info("Error creating upgrade request " + ke.getMessage());
         } catch (IOException ie) {
             LOG.error("Unexpected error in upgrade", ie);
         }
         if (upgradeRequest != null) {
+            //升级请求
             nextProcessor.processRequest(upgradeRequest);
         }
 
