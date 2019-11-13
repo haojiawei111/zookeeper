@@ -94,6 +94,7 @@ public class QuorumPeerConfig {
 
     protected int initLimit;
     protected int syncLimit;
+    // 选举算法
     protected int electionAlg = 3;
     protected int electionPort = 2182;
     protected boolean quorumListenOnAllIPs = false;
@@ -502,7 +503,7 @@ public class QuorumPeerConfig {
 
         // backward compatibility - dynamic configuration in the same file as
         // static configuration params see writeDynamicConfig()
-        //如果没有开启动态配置文件，没有配置动态配置文件路径
+        // TODO: 如果没有开启动态配置文件，没有配置动态配置文件路径
         if (dynamicConfigFileStr == null) {
             setupQuorumPeerConfig(zkProp, true);
             if (isDistributed() && isReconfigEnabled()) {
@@ -685,8 +686,8 @@ public class QuorumPeerConfig {
     }
 
     /**
-     * 如果配置了动态配置文件，prop就是动态配置文件的Properties对象，configBackwardCompatibilityMode为false
-     * 如果没有配置动态配置文件，prop就是静态配置文件的Properties对象，configBackwardCompatibilityMode为true
+     * TODO: 如果配置了动态配置文件，prop就是动态配置文件的Properties对象，configBackwardCompatibilityMode为false
+     * TODO: 如果没有配置动态配置文件，prop就是静态配置文件的Properties对象，configBackwardCompatibilityMode为true
      * @param prop
      * @param configBackwardCompatibilityMode
      * @throws IOException
@@ -723,9 +724,12 @@ public class QuorumPeerConfig {
             }
         }
         // isHierarchical=true说明dynamicConfigProp的key都是已group或weight开头的
+        // isHierarchical=true  返回QuorumHierarchical
+        // isHierarchical=false 返回QuorumMaj
         QuorumVerifier qv = createQuorumVerifier(dynamicConfigProp, isHierarchical);
-               
+        // TODO: 返回参加投票的人数
         int numParticipators = qv.getVotingMembers().size();
+        // TODO: 返回观察者人数
         int numObservers = qv.getObservingMembers().size();
         if (numParticipators == 0) {
             if (!standaloneEnabled) {
@@ -809,9 +813,10 @@ public class QuorumPeerConfig {
     // 服务是否参加选举
     private void setupPeerType() {
         // Warn about inconsistent peer type
-        LearnerType roleByServersList = quorumVerifier.getObservingMembers().containsKey(serverId) ? LearnerType.OBSERVER
-                : LearnerType.PARTICIPANT;
+        LearnerType roleByServersList = quorumVerifier.getObservingMembers().containsKey(serverId) ? LearnerType.OBSERVER : LearnerType.PARTICIPANT;
+        // roleByServersList默认是LearnerType.PARTICIPANT
         if (roleByServersList != peerType) {
+            // 不参与选举
             LOG.warn("Peer type from servers list (" + roleByServersList
                     + ") doesn't match peerType (" + peerType
                     + "). Defaulting to servers list.");
@@ -904,6 +909,8 @@ public class QuorumPeerConfig {
     public long getServerId() { return serverId; }
 
     // 是否是分布式的
+    // 单机情况下返回false
+    // 级群情况下返回true
     public boolean isDistributed() {
         return quorumVerifier!=null && (!standaloneEnabled || quorumVerifier.getVotingMembers().size() > 1);
     }

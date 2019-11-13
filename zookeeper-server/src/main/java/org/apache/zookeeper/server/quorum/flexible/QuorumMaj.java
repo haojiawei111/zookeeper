@@ -86,7 +86,9 @@ public class QuorumMaj implements QuorumVerifier {
 
             if (key.startsWith("server.")) {
                 int dot = key.indexOf('.');
+                // 配置文件中的服务器ID
                 long sid = Long.parseLong(key.substring(dot + 1));
+                // TODO: 创建一个QuorumServer对象
                 QuorumServer qs = new QuorumServer(sid, value);
                 allMembers.put(Long.valueOf(sid), qs);
                 if (qs.type == LearnerType.PARTICIPANT)
