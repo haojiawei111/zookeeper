@@ -22,6 +22,9 @@ import org.apache.zookeeper.ZKTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
+/**
+ * 测试KeyStoreFileType枚举类
+ */
 public class KeyStoreFileTypeTest extends ZKTestCase {
     @Test
     public void testGetPropertyValue() {
@@ -47,9 +50,11 @@ public class KeyStoreFileTypeTest extends ZKTestCase {
 
     @Test(expected = IllegalArgumentException.class)
     public void testFromPropertyValueThrowsOnBadPropertyValue() {
+        // 没有这个类型
         KeyStoreFileType.fromPropertyValue("foobar");
     }
 
+    //测试通过文件后缀名查找KeyStoreFileType
     @Test
     public void testFromFilename() {
         Assert.assertEquals(KeyStoreFileType.JKS,
@@ -67,6 +72,7 @@ public class KeyStoreFileTypeTest extends ZKTestCase {
         KeyStoreFileType.fromFilename("prod.key");
     }
 
+    // 先通过propertyValue找，找不到在通过文件后缀找
     @Test
     public void testFromPropertyValueOrFileName() {
         // Property value takes precedence if provided

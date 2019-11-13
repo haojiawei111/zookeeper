@@ -138,7 +138,7 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
             submitRequest(request);
         }
     }
-
+    // 对于这些类型的请求，我们需要将isLocalSession设置为tree，以便请求处理器可以正确处理它们。
     @Override
     protected void setLocalSessionFlag(Request si) {
         // We need to set isLocalSession to tree for these type of request

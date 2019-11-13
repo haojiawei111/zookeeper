@@ -115,7 +115,6 @@ public class GetEphemeralsTest extends ClientBase {
                 waitForCallbackSecs));
         }
         checkForUnexpectedBehavior(unexpectedBehavior);
-
     }
 
     @Test

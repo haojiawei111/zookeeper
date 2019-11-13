@@ -3,45 +3,154 @@
   <ID>JAVA</ID>
   <OriginalElement>org.apache.zookeeper.server.metric.Metric</OriginalElement>
   <nodes>
-    <node x="0.0" y="79.0">org.apache.zookeeper.server.metric.AvgMinMaxCounterSet</node>
-    <node x="187.0" y="79.0">org.apache.zookeeper.server.metric.SimpleCounter</node>
-    <node x="794.0" y="79.0">org.apache.zookeeper.server.metric.AvgMinMaxCounter</node>
-    <node x="332.0" y="79.0">org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounterSet</node>
-    <node x="401.0" y="0.0">org.apache.zookeeper.server.metric.Metric</node>
-    <node x="571.0" y="79.0">org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounter</node>
+    <node x="618.9151785714286" y="168.0">org.apache.zookeeper.server.quorum.FollowerBean</node>
+    <node x="778.0" y="321.0">org.apache.zookeeper.server.metric.AvgMinMaxCounterSet</node>
+    <node x="63.17410714285717" y="0.0">org.apache.zookeeper.server.quorum.ServerMXBean</node>
+    <node x="607.0" y="321.0">org.apache.zookeeper.server.metric.AvgMinMaxCounter</node>
+    <node x="325.41517857142856" y="168.0">org.apache.zookeeper.server.quorum.LeaderBean</node>
+    <node x="77.17410714285717" y="168.0">org.apache.zookeeper.server.quorum.LocalPeerBean</node>
+    <node x="289.41517857142856" y="89.0">org.apache.zookeeper.server.quorum.LeaderMXBean</node>
+    <node x="306.17410714285717" y="0.0">org.apache.zookeeper.jmx.ZKMBeanInfo</node>
+    <node x="455.91517857142856" y="89.0">org.apache.zookeeper.server.ZooKeeperServerBean</node>
+    <node x="552.6651785714286" y="0.0">org.apache.zookeeper.server.ZooKeeperServerMXBean</node>
+    <node x="223.0" y="321.0">org.apache.zookeeper.server.metric.SimpleCounter</node>
+    <node x="455.41517857142856" y="168.0">org.apache.zookeeper.server.quorum.ReadOnlyBean</node>
+    <node x="639.9151785714286" y="89.0">org.apache.zookeeper.server.quorum.FollowerMXBean</node>
+    <node x="0.0" y="395.0">org.apache.zookeeper.server.ServerMetrics</node>
+    <node x="161.0" y="89.0">org.apache.zookeeper.server.quorum.ServerBean</node>
+    <node x="794.9151785714287" y="89.0">org.apache.zookeeper.server.quorum.ObserverMXBean</node>
+    <node x="772.9151785714287" y="168.0">org.apache.zookeeper.server.ObserverBean</node>
+    <node x="0.0" y="89.0">org.apache.zookeeper.server.quorum.LocalPeerMXBean</node>
+    <node x="368.0" y="321.0">org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounterSet</node>
+    <node x="0.0" y="321.0">org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounter</node>
+    <node x="437.0" y="242.0">org.apache.zookeeper.server.metric.Metric</node>
   </nodes>
   <notes />
   <edges>
-    <edge source="org.apache.zookeeper.server.metric.SimpleCounter" target="org.apache.zookeeper.server.metric.Metric">
-      <point x="0.0" y="-14.5" />
-      <point x="249.5" y="59.0" />
-      <point x="425.3" y="59.0" />
-      <point x="-16.19999999999999" y="14.5" />
+    <edge source="org.apache.zookeeper.server.quorum.FollowerBean" target="org.apache.zookeeper.server.ZooKeeperServerBean">
+      <point x="-29.5" y="-14.5" />
+      <point x="648.4151785714286" y="148.0" />
+      <point x="558.4151785714286" y="148.0" />
+      <point x="20.5" y="14.5" />
     </edge>
-    <edge source="org.apache.zookeeper.server.metric.AvgMinMaxCounterSet" target="org.apache.zookeeper.server.metric.Metric">
+    <edge source="org.apache.zookeeper.server.quorum.LeaderBean" target="org.apache.zookeeper.server.ZooKeeperServerBean">
+      <point x="27.5" y="-14.5" />
+      <point x="407.91517857142856" y="148.0" />
+      <point x="476.41517857142856" y="148.0" />
+      <point x="-61.5" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ReadOnlyBean" target="org.apache.zookeeper.server.ZooKeeperServerBean">
       <point x="0.0" y="-14.5" />
-      <point x="83.5" y="49.0" />
-      <point x="409.1" y="49.0" />
-      <point x="-32.39999999999998" y="14.5" />
+      <point x="-20.5" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ServerBean" target="org.apache.zookeeper.server.quorum.ServerMXBean">
+      <point x="-27.0" y="-14.5" />
+      <point x="188.0" y="69.0" />
+      <point x="156.92410714285717" y="69.0" />
+      <point x="31.25" y="14.5" />
     </edge>
     <edge source="org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounterSet" target="org.apache.zookeeper.server.metric.Metric">
       <point x="0.0" y="-14.5" />
       <point x="0.0" y="14.5" />
     </edge>
+    <edge source="org.apache.zookeeper.server.ObserverBean" target="org.apache.zookeeper.server.quorum.ObserverMXBean">
+      <point x="30.5" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
     <edge source="org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounter" target="org.apache.zookeeper.server.metric.Metric">
       <point x="0.0" y="-14.5" />
-      <point x="672.5" y="59.0" />
-      <point x="457.7" y="59.0" />
-      <point x="16.19999999999999" y="14.5" />
+      <point x="101.5" y="291.0" />
+      <point x="445.1" y="291.0" />
+      <point x="-32.39999999999998" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.FollowerBean" target="org.apache.zookeeper.server.quorum.FollowerMXBean">
+      <point x="29.5" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LeaderBean" target="org.apache.zookeeper.server.quorum.LeaderMXBean">
+      <point x="-27.5" y="-14.5" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ObserverBean" target="org.apache.zookeeper.server.ZooKeeperServerBean">
+      <point x="-30.5" y="-14.5" />
+      <point x="803.4151785714287" y="138.0" />
+      <point x="599.4151785714286" y="138.0" />
+      <point x="61.5" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ObserverMXBean" target="org.apache.zookeeper.server.ZooKeeperServerMXBean">
+      <point x="0.0" y="-14.5" />
+      <point x="864.4151785714287" y="59.0" />
+      <point x="711.0401785714286" y="59.0" />
+      <point x="67.875" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServerBean" target="org.apache.zookeeper.jmx.ZKMBeanInfo">
+      <point x="-41.0" y="-14.5" />
+      <point x="496.91517857142856" y="49.0" />
+      <point x="395.42410714285717" y="49.0" />
+      <point x="29.75" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LocalPeerMXBean" target="org.apache.zookeeper.server.quorum.ServerMXBean">
+      <point x="0.0" y="-14.5" />
+      <point x="70.5" y="69.0" />
+      <point x="94.42410714285717" y="69.0" />
+      <point x="-31.25" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.metric.SimpleCounter" target="org.apache.zookeeper.server.metric.Metric">
+      <point x="0.0" y="-14.5" />
+      <point x="285.5" y="301.0" />
+      <point x="461.3" y="301.0" />
+      <point x="-16.19999999999999" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.ZooKeeperServerBean" target="org.apache.zookeeper.server.ZooKeeperServerMXBean">
+      <point x="41.0" y="-14.5" />
+      <point x="578.9151785714286" y="69.0" />
+      <point x="620.5401785714286" y="69.0" />
+      <point x="-22.625" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LocalPeerBean" target="org.apache.zookeeper.server.quorum.ServerBean">
+      <point x="31.0" y="-14.5" />
+      <point x="170.17410714285717" y="148.0" />
+      <point x="215.0" y="148.0" />
+      <point x="0.0" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.ServerBean" target="org.apache.zookeeper.jmx.ZKMBeanInfo">
+      <point x="27.0" y="-14.5" />
+      <point x="242.0" y="69.0" />
+      <point x="335.92410714285717" y="69.0" />
+      <point x="-29.75" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LeaderMXBean" target="org.apache.zookeeper.server.ZooKeeperServerMXBean">
+      <point x="0.0" y="-14.5" />
+      <point x="352.91517857142856" y="59.0" />
+      <point x="575.2901785714286" y="59.0" />
+      <point x="-67.875" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.metric.AvgMinMaxCounterSet" target="org.apache.zookeeper.server.metric.Metric">
+      <point x="0.0" y="-14.5" />
+      <point x="861.5" y="291.0" />
+      <point x="509.9" y="291.0" />
+      <point x="32.39999999999998" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.FollowerMXBean" target="org.apache.zookeeper.server.ZooKeeperServerMXBean">
+      <point x="0.0" y="-14.5" />
+      <point x="707.4151785714286" y="69.0" />
+      <point x="665.7901785714286" y="69.0" />
+      <point x="22.625" y="14.5" />
     </edge>
     <edge source="org.apache.zookeeper.server.metric.AvgMinMaxCounter" target="org.apache.zookeeper.server.metric.Metric">
       <point x="0.0" y="-14.5" />
-      <point x="869.5" y="49.0" />
-      <point x="473.9" y="49.0" />
-      <point x="32.39999999999998" y="14.5" />
+      <point x="682.5" y="301.0" />
+      <point x="493.7" y="301.0" />
+      <point x="16.19999999999999" y="14.5" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.LocalPeerBean" target="org.apache.zookeeper.server.quorum.LocalPeerMXBean">
+      <point x="-31.0" y="-14.5" />
+      <point x="108.17410714285717" y="148.0" />
+      <point x="70.5" y="148.0" />
+      <point x="0.0" y="14.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.0" x="507.0" y="55.0" />
+  <settings layout="Hierarchic Group" zoom="1.0" x="472.5" y="212.0" />
   <SelectedNodes />
   <Categories />
   <SCOPE>All</SCOPE>

@@ -25,6 +25,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import java.net.InetSocketAddress;
 
+/**
+ * 测试NetUtils - 格式化打印IPv6文字
+ */
 public class NetUtilsTest extends ZKTestCase {
 
     private Integer port = 1234;

@@ -91,6 +91,7 @@ public class ZKUtil {
     }
     
     /**
+     * 验证文件存在、不是目录、可以读
      * @param filePath the file path to be validated
      * @return Returns null if valid otherwise error message
      */

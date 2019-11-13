@@ -43,6 +43,12 @@ import java.util.function.Consumer;
  * <li>There is a delay between a file changing and the callback firing.</li>
  * <li>The watch is not recursive - changes to subdirectories will not trigger a callback.</li>
  * </ul>
+ * TODO: 此类的实例可用于监视目录中的文件更改。在给定目录中添加，删除或修改文件时，将从后台线程调用用户提供的回调。
+ * 注意事项：
+ * 1.回调应该是线程安全的。
+ * 2.在线程启动时发生的更改可能会丢失。
+ * 3.在文件更改和回调触发之间存在延迟。
+ * 4.该监视不是递归的-对子目录的更改不会触发回调。
  */
 public final class FileChangeWatcher {
     private static final Logger LOG = LoggerFactory.getLogger(FileChangeWatcher.class);
@@ -96,6 +102,8 @@ public final class FileChangeWatcher {
     /**
      * Blocks until the current state becomes <code>desiredState</code>.
      * Currently only used by tests, thus package-private.
+     * 阻塞直到当前状态变为<code> desiredState </ code>。
+     * 当前仅由测试使用，因此是包私有的。
      * @param desiredState the desired state.
      * @throws InterruptedException if the current thread gets interrupted.
      */

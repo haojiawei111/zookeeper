@@ -28,6 +28,9 @@ import javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag;
  * This helper class allows to programmatically create a JAAS configuration.
  * Each section must have a name and a login module, and a set of key/values
  * to describe login options.
+ * 该帮助程序类允许以编程方式创建JAAS配置。
+ * 每个部分必须具有一个名称和一个登录模块，以及一组用于描述登录选项的键/值。
+ *
  *
  * Example:
  *   jaas = new JaasConfiguration();
@@ -35,8 +38,7 @@ import javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag;
  *                   "username", "passowrd");
  */
 public class JaasConfiguration extends javax.security.auth.login.Configuration {
-    private final Map<String, AppConfigurationEntry[]> sections =
-      new HashMap<String, AppConfigurationEntry[]>();
+    private final Map<String, AppConfigurationEntry[]> sections = new HashMap<String, AppConfigurationEntry[]>();
 
     public JaasConfiguration() {
     }

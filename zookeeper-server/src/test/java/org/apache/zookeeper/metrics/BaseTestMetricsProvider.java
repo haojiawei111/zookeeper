@@ -59,7 +59,7 @@ public abstract class BaseTestMetricsProvider implements MetricsProvider {
         public static final AtomicBoolean startCalled = new AtomicBoolean();
         public static final AtomicBoolean stopCalled = new AtomicBoolean();
         public static final AtomicBoolean getRootContextCalled = new AtomicBoolean();
-
+        // 重置
         public static void reset() {
             configureCalled.set(false);
             startCalled.set(false);

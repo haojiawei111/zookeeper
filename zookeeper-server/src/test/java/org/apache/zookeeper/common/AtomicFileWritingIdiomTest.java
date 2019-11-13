@@ -34,12 +34,16 @@ import org.apache.zookeeper.common.AtomicFileWritingIdiom.WriterStatement;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * 测试文件操作原子操作
+ */
 public class AtomicFileWritingIdiomTest extends ZKTestCase {
 
     private static File tmpdir;
 
     @BeforeClass
     public static void createTmpDir() {
+        // 创建目录
         tmpdir = new File("build/test/tmp");
         tmpdir.mkdirs();
     }
@@ -48,7 +52,9 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
     public void testOutputStreamSuccess() throws IOException {
         File target = new File(tmpdir, "target.txt");
         final File tmp = new File(tmpdir, "target.txt.tmp");
+        // 向文件中写入before
         createFile(target, "before");
+        // getContent(target) 从文件中读
         assertEquals("before", getContent(target));
         new AtomicFileWritingIdiom(target, new OutputStreamStatement() {
             @Override
@@ -60,13 +66,14 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
         assertFalse("tmp file should have been deleted", tmp.exists());
         // content changed
         assertEquals("after", getContent(target));
-        target.delete();
+//        target.delete();
     }
 
     @Test
     public void testWriterSuccess() throws IOException {
         File target = new File(tmpdir, "target.txt");
         final File tmp = new File(tmpdir, "target.txt.tmp");
+        // 向文件中写入
         createFile(target, "before");
         assertEquals("before", getContent(target));
         new AtomicFileWritingIdiom(target, new WriterStatement() {
@@ -102,9 +109,12 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
         } catch (RuntimeException ex) {
             exception = true;
         }
+        // 临时文件删除
         assertFalse("tmp file should have been deleted", tmp.exists());
+        // 正确抛出了异常
         assertTrue("should have raised an exception", exception);
         // content preserved
+        // 原始文件没有变
         assertEquals("before", getContent(target));
         target.delete();
     }
@@ -157,6 +167,7 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
             exception = true;
         }
         assertFalse("tmp file should have been deleted", tmp.exists());
+        // 这里测试抛出IOException
         assertTrue("should have raised an exception", exception);
         // content preserved
         assertEquals("before", getContent(target));
@@ -211,6 +222,7 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
             exception = true;
         }
         assertFalse("tmp file should have been deleted", tmp.exists());
+        // 抛出Error异常
         assertTrue("should have raised an exception", exception);
         // content preserved
         assertEquals("before", getContent(target));
@@ -250,6 +262,7 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
     public void testOutputStreamSuccessNE() throws IOException {
         File target = new File(tmpdir, "target.txt");
         final File tmp = new File(tmpdir, "target.txt.tmp");
+        // TODO: target文件不存在，不存在就会自动重建
         target.delete();
         assertFalse("file should not exist", target.exists());
         new AtomicFileWritingIdiom(target, new OutputStreamStatement() {
@@ -306,6 +319,7 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
         assertFalse("tmp file should have been deleted", tmp.exists());
         assertTrue("should have raised an exception", exception);
         // file should not exist
+        // TODO: 原子操作过程中出错原始文件不应该存在
         assertFalse("file should not exist", target.exists());
     }
 
@@ -332,6 +346,7 @@ public class AtomicFileWritingIdiomTest extends ZKTestCase {
         assertFalse("tmp file should have been deleted", tmp.exists());
         assertTrue("should have raised an exception", exception);
         // file should not exist
+        // TODO: 原子操作过程中出错原始文件不应该存在
         assertFalse("file should not exist", target.exists());
     }
 

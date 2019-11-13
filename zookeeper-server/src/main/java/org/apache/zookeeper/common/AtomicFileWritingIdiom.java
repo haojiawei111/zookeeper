@@ -30,6 +30,10 @@ import java.io.Writer;
  *  the original file (if it exists) is left intact.
  *  Based on the org.apache.zookeeper.server.quorum.QuorumPeer.writeLongToFile(...) idiom
  *  using the HDFS AtomicFileOutputStream class.
+ *  TODO: 用于对文件执行原子写入。
+ *  如果写入操作失败，则原始文件（如果存在）保持原样。
+ *  基于org.apache.zookeeper.server.quorum.QuorumPeer.writeLongToFile（...）惯用语
+ *  TODO: 使用HDFS AtomicFileOutputStream类。先写入临时文件，然后在合并到原始文件
  */
 public class AtomicFileWritingIdiom {
 
@@ -60,10 +64,12 @@ public class AtomicFileWritingIdiom {
             out = new AtomicFileOutputStream(targetFile);
             if (wStmt == null) {
                 // execute output stream operation
+                // 执行输出流操作
                 osStmt.write(out);
             } else {
                 BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out));
                 // execute writer operation and flush
+                // 执行编写器操作并刷新
                 wStmt.write(bw);
                 bw.flush();
             }

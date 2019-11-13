@@ -23,6 +23,7 @@ import org.apache.zookeeper.server.ServerMetrics;
 
 /**
  * Utility for Metrics in tests.
+ * 测试中的度量工具
  */
 public abstract class MetricsUtils {
 
@@ -35,7 +36,8 @@ public abstract class MetricsUtils {
      * }
      * method, that method will in general be more efficient and it does not
      * impose to the MetricsProvider to waste resources.
-     *
+     * 从{@link MetricsProvider}收集所有指标。 MetricsProvider 提供{@link MetricsProvider＃dump（java.util.function.BiConsumer）*}方法，
+     * 该方法通常会更有效，并且不会强制MetricsProvider浪费资源。
      * @param metricsProvider
      * @return a Map which collects one entry per each different key returned by
      * {@link MetricsProvider#dump(java.util.function.BiConsumer) }
@@ -48,6 +50,8 @@ public abstract class MetricsUtils {
     
     /**
      * Collect current {@link ServerMetrics} as a Map.
+     *
+     * TODO: 返回所有的metricsProvider
      *
      * @return a flattened view of all metrics reported by the MetricsProvider
      * in use by the current ServerMetrics static instance.

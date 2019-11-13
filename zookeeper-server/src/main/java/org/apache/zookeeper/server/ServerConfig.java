@@ -105,6 +105,7 @@ public class ServerConfig {
 
     /**
      * Read attributes from a QuorumPeerConfig.
+     * TODO: 从QuorumPeerConfig中读取属性
      * @param config
      */
     public void readFrom(QuorumPeerConfig config) {

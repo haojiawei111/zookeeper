@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 /*
  * This code is originally from HDFS, see the similarly named files there
  * in case of bug fixing, history, etc...
+ * 此代码最初来自HDFS，请在此处查看类似名称的文件，以防错误修复，历史记录等。
  */
 
 /**
@@ -42,14 +43,21 @@ import org.slf4j.LoggerFactory;
  * <b>NOTE</b>: on Windows platforms, it will not atomically replace the target
  * file - instead the target file is deleted before this one is moved into
  * place.
+ *
+ * FileOutputStream具有的属性，只有在将其完全写入并刷新到磁盘后，才会显示在其目的地。在编写时，它将使用.tmp后缀。
+ *
+ * 关闭输出流后，将对其进行刷新，fsync和将其移动到位，从而覆盖该位置上已经存在的任何文件。
+ *
+ * <b>注意</ b>：在Windows平台上，它不会自动替换目标文件-而是在将目标文件移动到位之前删除目标文件。
+ *
  */
 public class AtomicFileOutputStream extends FilterOutputStream {
     private static final String TMP_EXTENSION = ".tmp";
 
-    private final static Logger LOG = LoggerFactory
-            .getLogger(AtomicFileOutputStream.class);
-
+    private final static Logger LOG = LoggerFactory.getLogger(AtomicFileOutputStream.class);
+    // 目标文件
     private final File origFile;
+    // 临时文件
     private final File tmpFile;
 
     public AtomicFileOutputStream(File f) throws FileNotFoundException {
@@ -68,9 +76,11 @@ public class AtomicFileOutputStream extends FilterOutputStream {
      * method of its underlying input stream with the same arguments. Instead
      * it writes the data byte by byte, override it here to make it more
      * efficient.
+     * FilterOutputStream中的默认write方法不会使用相同的参数调用其基础输入流的write方法。相反，它逐字节写入数据，此处将其覆盖以使其更有效率。
      */
     @Override
     public void write(byte b[], int off, int len) throws IOException {
+        // 写入临时文件
         out.write(b, off, len);
     }
 
@@ -83,12 +93,14 @@ public class AtomicFileOutputStream extends FilterOutputStream {
 
             triedToClose = true;
             super.close();
+            // 临时文件全部写入完成并安全关闭
             success = true;
         } finally {
             if (success) {
                 boolean renamed = tmpFile.renameTo(origFile);
                 if (!renamed) {
                     // On windows, renameTo does not replace.
+                    // 在Windows上，namedTo不会替换。，所以先删除在替换
                     if (!origFile.delete() || !tmpFile.renameTo(origFile)) {
                         throw new IOException(
                                 "Could not rename temporary file " + tmpFile
@@ -117,8 +129,10 @@ public class AtomicFileOutputStream extends FilterOutputStream {
         try {
             super.close();
         } catch (IOException ioe) {
+            // 关闭临时文件有IOException错误
             LOG.warn("Unable to abort file " + tmpFile, ioe);
         }
+        // 删除临时文件
         if (!tmpFile.delete()) {
             LOG.warn("Unable to delete tmp file during abort " + tmpFile);
         }

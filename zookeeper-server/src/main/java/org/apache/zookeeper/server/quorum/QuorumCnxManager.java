@@ -605,7 +605,7 @@ public class QuorumCnxManager {
         // do authenticating learner 认证learner
         authServer.authenticate(sock, din);
         //If wins the challenge, then close the new connection.
-        //如果远处节点sid比自己的sid小，挑战成功，则关闭socket，自己申请与远程节点连接
+        //如果远处节点sid比自己的sid小，则关闭socket，自己申请与远程节点连接
         if (sid < self.getId()) {
             // 如果 连接的serverId < 本机的serverId
             /*

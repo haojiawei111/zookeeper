@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Assign ports to tests */
+/** Assign ports to tests 为测试分配端口 */
 public final class PortAssignment {
     private static final Logger LOG = LoggerFactory.getLogger(PortAssignment.class);
 
@@ -35,6 +35,8 @@ public final class PortAssignment {
     // coordinate with the OS on the assignment of those ports, so it's best to
     // stay out of that range to avoid conflicts.  Typical ranges for ephemeral
     // ports are:
+    // 我们使用的可用端口范围远离临时端口范围，该临时端口范围是操作系统将分配给客户端套接字连接的。
+    // 我们无法在分配这些端口的过程中与操作系统进行协调，因此最好不要超出该范围，以免发生冲突。临时端口的典型范围是：
     // - IANA suggests 49152 - 65535
     // - Linux typically uses 32768 - 61000
     // - FreeBSD modern versions typically use the IANA suggested range
@@ -107,6 +109,14 @@ public final class PortAssignment {
      * this information is unavailable or unparseable, then the default behavior
      * is for this process to use the entire available port range.  This is
      * expected when running tests outside of Ant.
+     *
+     * 设置要使用的端口范围。
+     * 在典型用法中，Ant调用JUnit，可能使用多个JUnit进程来同时执行多个测试套件。
+     * JUnit进程的计数是从Ant作为名为“ test.junit.threads”的系统属性传递的。
+     * Ant的JUnit运行器将线程ID作为命令行参数接收，形式为threadid = N，其中N是[1，$ {test.junit.threads}]范围内的整数。
+     * 它无法通过其他方式访问，因此我们需要从命令行进行解析。此方法使用这2条信息将可用端口划分为不相交的范围。
+     * 每个JUnit进程仅分配其自身范围内的端口，以防止在并发测试运行期间发生绑定错误。
+     * 如果这些信息中的任何一个不可用或不可解析，则此过程的默认行为是使用整个可用端口范围。在Ant外部运行测试时，这是预期的。
      *
      * @param strProcessCount string representation of integer process count,
      *         typically taken from system property test.junit.threads

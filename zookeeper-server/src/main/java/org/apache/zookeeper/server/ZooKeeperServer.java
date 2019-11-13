@@ -143,9 +143,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      */
     // 生成密码的密钥
     static final private long superSecret = 0XB3415C00L;
-
+    //正在处理的请求个数
     private final AtomicInteger requestsInProcess = new AtomicInteger(0);
-    // 未处理的ChangeRecord
+    // 未处理的ChangeRecord  变更列表
     final Deque<ChangeRecord> outstandingChanges = new ArrayDeque<>();
     // this data structure must be accessed under the outstandingChanges lock
     // 记录path对应的ChangeRecord
@@ -465,9 +465,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         hzxid.set(zxid);
     }
 
-
+    /**
+     * 发送会话关闭请求
+     * @param sessionId
+     */
     private void close(long sessionId) {
         Request si = new Request(null, sessionId, 0, OpCode.closeSession, null, null);
+        // 发送本地请求
         setLocalSessionFlag(si);
         submitRequest(si);
     }
@@ -493,7 +497,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * 执行会话过期
+     * TODO：在会话追踪器中执行会话过期
      *
      * 为了使对该会话的关闭操作在整个服务端集群都生效，Zookeeper使用了提交会话关闭请求的方式，并立即交付给PreRequestProcessor进行处理。
      *
@@ -549,8 +553,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     // 加载数据
-    public void startdata()
-    throws IOException, InterruptedException {
+    public void startdata() throws IOException, InterruptedException {
         //check to see if zkDb is not null
         // 检查zkDb是否为空
         if (zkDb == null) {
@@ -792,6 +795,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
     }
 
+    // 根据sessionId生成密码
     byte[] generatePasswd(long id) {
         Random r = new Random(id ^ superSecret);
         byte p[] = new byte[16];
@@ -799,6 +803,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return p;
     }
 
+    // 验证sessionId和传递来的密码的正确性
     protected boolean checkPasswd(long sessionId, byte[] passwd) {
         return sessionId != 0
                 && Arrays.equals(passwd, generatePasswd(sessionId));
@@ -845,8 +850,10 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     public void reopenSession(ServerCnxn cnxn, long sessionId, byte[] passwd,
             int sessionTimeout) throws IOException {
         if (checkPasswd(sessionId, passwd)) {
+            //如果密码正确，判断会话跟踪器的记录
             revalidateSession(cnxn, sessionId, sessionTimeout);
         } else {
+            //如果密码不对
             LOG.warn("Incorrect password from " + cnxn.getRemoteSocketAddress()
                     + " for session 0x" + Long.toHexString(sessionId));
             finishSessionInit(cnxn, false);
@@ -912,6 +919,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         closeSession(cnxn.getSessionId());
     }
 
+    //默认实现,不同角色的实现返回值不同
     public long getServerId() {
         return 0;
     }
@@ -1234,7 +1242,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                     connReq.getTimeOut(),
                     cnxn.getRemoteSocketAddress());
         } else {
-            // 表示重新创建会话
+            // 表示重新创建会话  client重连的调用
             long clientSessionId = connReq.getSessionId();
             LOG.debug("Client attempting to renew session:" +
                             " session = 0x{}, zxid = 0x{}, timeout = {}, address = {}",

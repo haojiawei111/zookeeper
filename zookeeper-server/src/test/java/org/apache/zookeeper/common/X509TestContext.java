@@ -39,6 +39,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * This class simplifies the creation of certificates and private keys for SSL/TLS connections.
+ * 此类简化了SSL / TLS连接的证书和私钥的创建。
  */
 public class X509TestContext {
     private static final String TRUST_STORE_PREFIX = "zk_test_ca";

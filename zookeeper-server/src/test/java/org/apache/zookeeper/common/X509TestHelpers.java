@@ -74,6 +74,7 @@ import java.util.Date;
 /**
  * This class contains helper methods for creating X509 certificates and key pairs, and for serializing them
  * to JKS or PEM files.
+ * 此类包含用于创建X509证书和密钥对以及将其序列化为JKS或PEM文件的辅助方法。
  */
 public class X509TestHelpers {
     private static final Logger LOG = LoggerFactory.getLogger(X509TestHelpers.class);

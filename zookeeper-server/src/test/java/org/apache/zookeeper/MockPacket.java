@@ -40,6 +40,7 @@ public class MockPacket extends ClientCnxn.Packet {
 
     public ByteBuffer createAndReturnBB() {
         createBB();
+        // 序列化之后的byteBuffer
         return this.bb;
     }
 

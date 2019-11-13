@@ -24,15 +24,17 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * A misc place to verify toString methods - mainly to make sure they don't
- * fail.
+ * A misc place to verify toString methods - mainly to make sure they don't fail.
+ * 验证toString方法的杂项位置-主要是确保它们不会失败。
  */
 public class ToStringTest extends ZKTestCase {
-    /** Verify jute - which we've had particular problems with in the past 
-     * wrt null fields */
+    /** Verify jute - which we've had particular problems with in the past  wrt null fields  */
     @Test
     public void testJuteToString() {
-        SetDataRequest req = new SetDataRequest(null, null, 0);
+        String path = null;
+        byte[] data = null;
+        int version = 0;
+        SetDataRequest req = new SetDataRequest(path, data, version);
         Assert.assertNotSame("ERROR", req.toString());
     }
 }

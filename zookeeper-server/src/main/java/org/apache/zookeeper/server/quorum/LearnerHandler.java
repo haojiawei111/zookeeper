@@ -52,6 +52,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Leader接收到来自其他机器连接创建请求后，会创建一个LearnerHandler实例，
+ * 每个LearnerHandler实例都对应一个Leader与Learner服务器之间的连接，
+ * 其负责Leader和Learner服务器之间几乎所有的消息通信和数据同步。
+ *
  * There will be an instance of this class created by the Leader for each
  * learner. All communication with a learner is handled by this
  * class.

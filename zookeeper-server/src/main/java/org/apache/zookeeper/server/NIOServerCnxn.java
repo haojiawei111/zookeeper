@@ -65,6 +65,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     private final SelectorThread selectorThread;
     // 表示 SelectableChannel 在 Selector 中注册的标记
+    // 对于ACCEPT，CONNECT，READ，WRITE感兴趣的key组合
     private final SelectionKey sk;
     // 初始化标志
     private boolean initialized;
@@ -119,11 +120,12 @@ public class NIOServerCnxn extends ServerCnxn {
      * calls to selector and then close the socket
      * @param bb
      */
-    void sendBufferSync(ByteBuffer bb) {
+    void sendBufferSync(ByteBuffer bb) {//同步发送
        try {
            /* configure socket to be blocking
             * so that we dont have to do write in
             * a tight while loop
+            * 将socket设置为阻塞，这样我们就不必在紧密的while循环中写入
             */
            if (bb != ServerCnxnFactory.closeConn) {
                if (sock.isOpen()) {
@@ -217,7 +219,7 @@ public class NIOServerCnxn extends ServerCnxn {
     public void enableSelectable() {
         selectable.set(true);
     }
-
+    // 添加感兴趣事件请求
     private void requestInterestOpsUpdate() {
         if (isSelectable()) {
             selectorThread.addInterestOpsUpdateRequest(sk);
@@ -246,6 +248,7 @@ public class NIOServerCnxn extends ServerCnxn {
          */
         /*
          * 尝试获取直接内存
+         * 默认是64 * 1024
          */
         ByteBuffer directBuffer = NIOServerCnxnFactory.getDirectBuffer();
         if (directBuffer == null) {
@@ -253,6 +256,7 @@ public class NIOServerCnxn extends ServerCnxn {
             ByteBuffer[] bufferList = new ByteBuffer[outgoingBuffers.size()];
             // Use gathered write call. This updates the positions of the
             // byte buffers to reflect the bytes that were written out.
+            // 使用聚集的写入调用。这会更新字节缓冲区的位置以反映写出的字节。
             sock.write(outgoingBuffers.toArray(bufferList));
 
             // Remove the buffers that we have sent 删除我们发送的缓冲区
@@ -264,7 +268,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 if (bb == packetSentinel) {
                     packetSent();
                 }
-                if (bb.remaining() > 0) {
+                if (bb.remaining() > 0) {//如果还有内容没有发送
                     break;
                 }
                 outgoingBuffers.remove();
@@ -419,7 +423,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 handleWrite(k);
 
                 if (!initialized && !getReadInterest() && !getWriteInterest()) {
-                    throw new CloseRequestException("responded to info probe");
+                    throw new CloseRequestException("responded to info probe 回复信息探测 ");
                 }
             }
         } catch (CancelledKeyException e) {
@@ -460,6 +464,7 @@ public class NIOServerCnxn extends ServerCnxn {
 
     // returns whether we are interested in writing, which is determined
     // by whether we have any pending buffers on the output queue or not
+    // 如果outgoingBuffers不为空就可以注册 写事件
     private boolean getWriteInterest() {
         return !outgoingBuffers.isEmpty();
     }
@@ -469,13 +474,14 @@ public class NIOServerCnxn extends ServerCnxn {
     private boolean getReadInterest() {
         return !throttled.get();
     }
-
+    // 是否要往selector注册 读事件
     private final AtomicBoolean throttled = new AtomicBoolean(false);
 
     // Throttle acceptance of new requests. If this entailed a state change,
     // register an interest op update request with the selector.
     //
     // Don't support wait disable receive in NIO, ignore the parameter
+    // 改变感兴趣事件 开启读事件
     public void disableRecv(boolean waitDisableRecv) {
         if (throttled.compareAndSet(false, true)) {
             requestInterestOpsUpdate();
@@ -485,6 +491,7 @@ public class NIOServerCnxn extends ServerCnxn {
     // Disable throttling and resume acceptance of new requests. If this
     // entailed a state change, register an interest op update request with
     // the selector.
+    // 改变感兴趣事件 禁止读事件
     public void enableRecv() {
         if (throttled.compareAndSet(true, false)) {
             requestInterestOpsUpdate();
@@ -506,6 +513,7 @@ public class NIOServerCnxn extends ServerCnxn {
      * for some commands, this class chunks up the result.
      */
     // 该类用来将给客户端的响应进行分块，其核心方法是checkFlush方法
+    // 避免response太大，没有写完而一直占用空间,因此对response分块
     private class SendBufferWriter extends Writer {
         private StringBuffer sb = new StringBuffer();
 
@@ -518,7 +526,7 @@ public class NIOServerCnxn extends ServerCnxn {
         private void checkFlush(boolean force) {
             if ((force && sb.length() > 0) || sb.length() > 2048) { // 当强制发送并且sb大小大于0，或者sb大小大于2048即发送缓存
                 sendBufferSync(ByteBuffer.wrap(sb.toString().getBytes()));
-                // clear our internal buffer
+                // 清除内部缓冲区
                 sb.setLength(0);
             }
         }
@@ -533,13 +541,13 @@ public class NIOServerCnxn extends ServerCnxn {
 
         @Override
         public void flush() throws IOException {
-            checkFlush(true);
+            checkFlush(true);//强制发送
         }
 
         @Override
         public void write(char[] cbuf, int off, int len) throws IOException {
-            sb.append(cbuf, off, len);
-            checkFlush(false);
+            sb.append(cbuf, off, len);//sb写入内容
+            checkFlush(false);//非强制发送
         }
     }
     /** Return if four letter word found and responded to, otw false 如果发现并回复了四个字母的单词，则返回，otw false **/
@@ -573,8 +581,7 @@ public class NIOServerCnxn extends ServerCnxn {
             }
         }
 
-        final PrintWriter pwriter = new PrintWriter(
-                new BufferedWriter(new SendBufferWriter()));
+        final PrintWriter pwriter = new PrintWriter(new BufferedWriter(new SendBufferWriter()));
 
         // ZOOKEEPER-2693: don't execute 4lw if it's not enabled.
         if (!FourLetterCommands.isEnabled(cmd)) {
@@ -616,6 +623,7 @@ public class NIOServerCnxn extends ServerCnxn {
     private boolean readLength(SelectionKey k) throws IOException {
         // Read the length, now get the buffer 读取长度，现在获取缓冲区
         int len = lenBuffer.getInt();
+
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
         }
@@ -822,8 +830,10 @@ public class NIOServerCnxn extends ServerCnxn {
         factory.touchCnxn(this);
     }
 
+    // 设置组合事件
     @Override
     public int getInterestOps() {
+        // 如果没有准备好选择，则返回0
         if (!isSelectable()) {
             return 0;
         }

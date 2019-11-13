@@ -27,6 +27,10 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 
 /**
  * Handles client specific properties
+ *
+ * 主要作用：从环境变量中取值
+ * TODO：需要提前通过设置System.setProperty，不然全是null
+ * 属性可以手动设置或者直接读文件
  * @since 3.5.2
  */
 @InterfaceAudience.Public
@@ -66,6 +70,8 @@ public class ZKClientConfig extends ZKConfig {
     public static final long ZOOKEEPER_REQUEST_TIMEOUT_DEFAULT = 0;
 
     public ZKClientConfig() {
+        //super();会调用父类的init()方法，init()方法会调用 handleBackwardCompatibility()方法，
+        // TODO:  handleBackwardCompatibility()方法在子类得到了重写
         super();
         initFromJavaSystemProperties();
     }
@@ -79,6 +85,7 @@ public class ZKClientConfig extends ZKConfig {
     }
 
     /**
+     * 初始化所有可配置为 java系统属性的ZooKeeper客户端属性
      * Initialize all the ZooKeeper client properties which are configurable as
      * java system property
      */

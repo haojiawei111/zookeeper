@@ -32,6 +32,7 @@ import java.util.List;
 /**
  * The sole responsibility of this class is to print to the log when a test
  * starts and when it finishes.
+ * 此类的唯一责任是在测试*开始和结束时将其打印到日志。
  */
 public class JUnit4ZKTestRunner extends BlockJUnit4ClassRunner {
     private static final Logger LOG = LoggerFactory.getLogger(JUnit4ZKTestRunner.class);

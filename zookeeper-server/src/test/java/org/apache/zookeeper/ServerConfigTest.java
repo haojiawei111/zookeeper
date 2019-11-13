@@ -48,6 +48,7 @@ public class ServerConfigTest {
 
     @Test
     public void testValidArguments() {
+        // 端口号 快照路径 TickTime MaxClientCnxns
         String[] args = {"2181", "/data/dir", "60000", "10000"};
         serverConfig.parse(args);
 
@@ -59,6 +60,7 @@ public class ServerConfigTest {
 
     @Test(expected=IllegalArgumentException.class)
     public void testTooManyArguments() {
+        // 参数不能大于4个
         String[] args = {"2181", "/data/dir", "60000", "10000", "9999"};
         serverConfig.parse(args);
     }

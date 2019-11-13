@@ -34,7 +34,7 @@ import org.junit.Test;
 
 /**
  * Testing zk client session logic in sessiontracker
- * 在sessiontracker中测试zk客户端会话逻辑
+ * 在sessiontracker(会话追踪)中测试zk客户端会话逻辑
  */
 public class SessionTrackerTest extends ZKTestCase {
 
@@ -54,21 +54,23 @@ public class SessionTrackerTest extends ZKTestCase {
         latch = new CountDownLatch(1);
         zks.sessionTracker.trackSession(sessionId, sessionTimeout);
         SessionTrackerImpl sessionTrackerImpl = (SessionTrackerImpl) zks.sessionTracker;
-        SessionImpl sessionImpl = sessionTrackerImpl.sessionsById
-                .get(sessionId);
+        SessionImpl sessionImpl = sessionTrackerImpl.sessionsById.get(sessionId);
         Assert.assertNotNull("Sessionid:" + sessionId
                 + " doesn't exists in sessiontracker", sessionImpl);
 
         // verify the session existence
+        // 验证会话是否存在
         Object sessionOwner = new Object();
         sessionTrackerImpl.checkSession(sessionId, sessionOwner);
 
         // waiting for the session expiry
+        // 等待会话期满
         latch.await(sessionTimeout * 2, TimeUnit.MILLISECONDS);
 
         // Simulating FinalRequestProcessor logic: create session request has
         // delayed and now reaches FinalRequestProcessor. Here the leader zk
         // will do sessionTracker.addSession(id, timeout)
+        // 模拟FinalRequestProcessor逻辑：创建会话请求已延迟，现在到达FinalRequestProcessor。。领导者zk在这里执行sessionTracker.addSession（id，timeout）
         sessionTrackerImpl.trackSession(sessionId, sessionTimeout);
         try {
             sessionTrackerImpl.checkSession(sessionId, sessionOwner);
@@ -76,18 +78,18 @@ public class SessionTrackerTest extends ZKTestCase {
                     + "as the session has expired and closed");
         } catch (KeeperException.SessionExpiredException e) {
             // expected behaviour
+            System.out.println("Should throw session expiry exception as the session has expired and closed由于会话已过期并关闭，因此应引发会话过期异常");
         }
         Assert.assertTrue("Session didn't expired", sessionImpl.isClosing());
-        Assert.assertFalse("Session didn't expired", sessionTrackerImpl
-                .touchSession(sessionId, sessionTimeout));
+        Assert.assertFalse("Session didn't expired", sessionTrackerImpl.touchSession(sessionId, sessionTimeout));
         Assert.assertEquals(
                 "Duplicate session expiry request has been generated", 1,
                 firstProcessor.getCountOfCloseSessionReq());
     }
 
     /**
-     * Verify the session closure request has reached PrepRequestProcessor soon
-     * after session expiration by the session tracker
+     * Verify the session closure request has reached PrepRequestProcessor soon after session expiration by the session tracker
+     * TODO: 在会话跟踪程序终止会话后，立即验证会话关闭请求是否已到达PrepRequestProcessor
      */
     @Test(timeout = 20000)
     public void testCloseSessionRequestAfterSessionExpiry() throws Exception {
@@ -96,8 +98,7 @@ public class SessionTrackerTest extends ZKTestCase {
         latch = new CountDownLatch(1);
         zks.sessionTracker.trackSession(sessionId, sessionTimeout);
         SessionTrackerImpl sessionTrackerImpl = (SessionTrackerImpl) zks.sessionTracker;
-        SessionImpl sessionImpl = sessionTrackerImpl.sessionsById
-                .get(sessionId);
+        SessionImpl sessionImpl = sessionTrackerImpl.sessionsById.get(sessionId);
         Assert.assertNotNull("Sessionid:" + sessionId
                 + " doesn't exists in sessiontracker", sessionImpl);
 
@@ -110,9 +111,10 @@ public class SessionTrackerTest extends ZKTestCase {
 
         // Simulating close session request: removeSession() will be executed
         // while OpCode.closeSession
+        // OpCode.closeSession请求是否已到达PrepRequestProcessor
+        // 模拟关闭会话请求：removeSession（）将在OpCode.closeSession时执行
         sessionTrackerImpl.removeSession(sessionId);
-        SessionImpl actualSession = sessionTrackerImpl.sessionsById
-                .get(sessionId);
+        SessionImpl actualSession = sessionTrackerImpl.sessionsById.get(sessionId);
         Assert.assertNull("Session:" + sessionId
                 + " still exists after removal", actualSession);
     }
@@ -126,6 +128,7 @@ public class SessionTrackerTest extends ZKTestCase {
         zks.firstProcessor = firstProcessor;
 
         // setup session tracker
+        // 设置会话跟踪器
         zks.createSessionTracker();
         zks.startSessionTracker();
         return zks;

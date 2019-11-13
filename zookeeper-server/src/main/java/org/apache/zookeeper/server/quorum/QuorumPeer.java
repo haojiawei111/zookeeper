@@ -962,10 +962,13 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             LOG.warn("Problem starting AdminServer", e);
             System.out.println(e);
         }
+
         // 开始选举，这个只是设置electionAlg和currentVote
         startLeaderElection();
+
         // 开始jvm监控，主要监控jvm导致是系统停顿
         startJvmPauseMonitor();
+
         super.start();
     }
 
@@ -982,6 +985,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             // 同时会从磁盘的currentEpoch和acceptedEpoch文件中对去出上次记录的最新的epoch值，进行校验。
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
+                // 读取当前的 Epoch 时代
                 currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
             	// pick a reasonable epoch number
@@ -1024,7 +1028,11 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         responder.interrupt();
     }
 
-    // 开始选举Leader
+    // 选举Leader
+	// 集群模式特有，Zookeeper首先会根据自身的服务器ID（SID）、最新的ZXID（lastLoggedZxid）和当前的服务器epoch（currentEpoch）来生成一个初始化投票
+	// 在初始化过程中，每个服务器都会给自己投票。然后，根据zoo.cfg的配置，创建相应Leader选举算法实现
+	// Zookeeper提供了三种默认算法（AuthFastLeaderElection、FastLeaderElection），可通过zoo.cfg中的electionAlg属性来指定，但现只支持FastLeaderElection选举算法。
+	// 在初始化阶段，Zookeeper会创建Leader选举所需的网络I/O层QuorumCnxManager，同时启动对Leader选举端口的监听，等待集群中其他服务器创建连接。
     synchronized public void startLeaderElection() {
         try {
             if (getPeerState() == ServerState.LOOKING) {
@@ -1225,7 +1233,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             jmxQuorumBean = new QuorumBean(this);
             MBeanRegistry.getInstance().register(jmxQuorumBean, null);
             Collection<QuorumServer> values = getView().values();
-            for(QuorumServer s: getView().values()){
+            for(QuorumServer s: values){
                 ZKMBeanInfo p;
                 if (getId() == s.id) {
                     p = jmxLocalPeerBean = new LocalPeerBean(this);
@@ -1253,11 +1261,15 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         try {
             /*
              * 主循环
+             * QuorumPeer会不断检测当前服务器状态。
+             * 在正常情况下，Zookeeper服务器的状态在LOOKING、LEADING、FOLLOWING/OBSERVING之间进行切换。
+             * 在启动阶段，QuorumPeer的初始状态是LOOKING，因此开始进行Leader选举。
              */
             while (running) {
                 switch (getPeerState()) {
                 case LOOKING:// 进行选举
                     LOG.info("LOOKING");
+                    // 记录本机选举次数
                     ServerMetrics.getMetrics().LOOKING_COUNT.add(1);
 
                     if (Boolean.getBoolean("readonlymode.enabled")) {// 开启的只读模式
@@ -1447,8 +1459,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     /**
-     * A 'view' is a node's current opinion of the membership of the entire
-     * ensemble.
+     * A 'view' is a node's current opinion of the membership of the entire ensemble.
+     * “视图”是节点对整个集合的成员资格的当前意见。
      */
     public Map<Long,QuorumPeer.QuorumServer> getView() {
         return Collections.unmodifiableMap(getQuorumVerifier().getAllMembers());
