@@ -46,10 +46,28 @@ public class ZooKeeperSaslServer {
         }
     }
 
+    /**
+     * 评估响应数据并产生挑战。
+     *
+     * 如果在身份验证过程中从客户端收到响应，则调用此方法以准备适当的下一个质询以提交给客户端。
+     * 如果身份验证成功并且没有更多挑战数据要发送到客户端，则挑战为null。
+     * 如果必须通过向客户端发送质询来继续进行身份验证，或者如果身份验证成功但客户端需要处理质询数据，则此字段为非null。
+     * 在每次调用{@codevaluateResponse（）}之后，应调用{@code isComplete（）}，以确定是否需要客户端进一步的响应。
+     *
+     * @param response
+     * @return
+     * @throws SaslException
+     */
     public byte[] evaluateResponse(byte[] response) throws SaslException {
         return saslServer.evaluateResponse(response);
     }
 
+    /**
+     * 确定认证交换是否已完成。
+     * 通常在每次调用{@code validateResponse（）}之后调用此方法，以确定身份验证是成功完成还是应该继续进行。
+     *
+     * @return
+     */
     public boolean isComplete() {
         return saslServer.isComplete();
     }

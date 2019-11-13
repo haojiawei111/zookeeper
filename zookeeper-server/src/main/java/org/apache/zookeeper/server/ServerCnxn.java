@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 public abstract class ServerCnxn implements Stats, Watcher {
     // This is just an arbitrary object to represent requests issued by
     // (aka owned by) this class
-    // 代表由本类提出的请求
+    // TODO: 代表由本类提出的请求
     final public static Object me = new Object();
     private static final Logger LOG = LoggerFactory.getLogger(ServerCnxn.class);
     // 认证信息
@@ -76,7 +76,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
     // 标志这个连接是否存活
     private volatile boolean stale = false;
 
-    //已提交但是尚未回复的请求数
+    // 已提交但是尚未回复的请求数
     AtomicLong outstandingCount = new AtomicLong();
 
     /** The ZooKeeperServer for this connection. May be null if the server
@@ -96,7 +96,10 @@ public abstract class ServerCnxn implements Stats, Watcher {
         if (h.getXid() <= 0) {
             return;
         }
+        // TODO: outstandingCount.incrementAndGet()增加已经接收但是还没有响应的请求
+        // TODO: outstandingCount记录的是ServerCnxn自己的请求未响应数
         if (zkServer.shouldThrottle(outstandingCount.incrementAndGet())) {
+            // TODO: 静止接收新的请求
             disableRecv(false);
         }
     }
@@ -107,6 +110,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
             return;
         }
         if (!zkServer.shouldThrottle(outstandingCount.decrementAndGet())) {
+            // 开启该Cnxn接收请求
             enableRecv();
         }
     }

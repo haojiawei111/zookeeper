@@ -127,10 +127,9 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
             ctx.channel().attr(CONNECTION_ATTRIBUTE).set(cnxn);
 
             if (secure) {
-                // 这里是为了判断前一个ssl验证是否成功，如果成功或者失败都会执行自己定义的策略（CertificateVerifier）
                 SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
                 Future<Channel> handshakeFuture = sslHandler.handshakeFuture();
-                // 在SslHandler的handshakeFuture中增加监听者来对证书进行校验
+                // TODO: 在SslHandler的handshakeFuture（握手）中增加监听者来对证书进行校验
                 handshakeFuture.addListener(new CertificateVerifier(sslHandler, cnxn));
 
             } else {
@@ -191,6 +190,7 @@ public class NettyServerCnxnFactory extends ServerCnxnFactory {
                     ctx.channel().config().setAutoRead(true);
                 } else if (evt == NettyServerCnxn.AutoReadEvent.DISABLE) {
                     LOG.debug("Received AutoReadEvent.DISABLE收到AutoReadEvent.DISABLE");
+                    // 不接受新的请求
                     ctx.channel().config().setAutoRead(false);
                 }
             } finally {

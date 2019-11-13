@@ -3,89 +3,91 @@
   <ID>JAVA</ID>
   <OriginalElement>org.apache.zookeeper.server.ZooKeeperServer</OriginalElement>
   <nodes>
-    <node x="640.25" y="80.0">org.apache.zookeeper.server.ZooKeeperServer</node>
-    <node x="1028.25" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.State</node>
-    <node x="327.25000000000006" y="240.0">org.apache.zookeeper.server.quorum.LeaderZooKeeperServer</node>
-    <node x="217.25000000000006" y="160.0">org.apache.zookeeper.server.quorum.QuorumZooKeeperServer</node>
-    <node x="648.25" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord</node>
-    <node x="716.25" y="0.0">org.apache.zookeeper.server.SessionTracker.SessionExpirer</node>
-    <node x="435.25000000000006" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.MissingSessionException</node>
-    <node x="113.25000000000006" y="240.0">org.apache.zookeeper.server.quorum.LearnerZooKeeperServer</node>
-    <node x="0.0" y="320.0">org.apache.zookeeper.server.quorum.FollowerZooKeeperServer</node>
-    <node x="599.25" y="0.0">org.apache.zookeeper.server.ServerStats.Provider</node>
-    <node x="802.25" y="160.0">org.apache.zookeeper.server.quorum.ReadOnlyZooKeeperServer</node>
-    <node x="219.00000000000006" y="320.0">org.apache.zookeeper.server.quorum.ObserverZooKeeperServer</node>
+    <node x="526.75" y="80.0">org.apache.zookeeper.server.ZooKeeperServer</node>
+    <node x="329.75" y="240.0">org.apache.zookeeper.server.quorum.LeaderZooKeeperServer</node>
+    <node x="431.4166666666667" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.State</node>
+    <node x="213.41666666666669" y="160.0">org.apache.zookeeper.server.quorum.QuorumZooKeeperServer</node>
+    <node x="602.75" y="0.0">org.apache.zookeeper.server.SessionTracker.SessionExpirer</node>
+    <node x="528.4166666666667" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord</node>
+    <node x="908.4166666666667" y="160.0">org.apache.zookeeper.server.ZooKeeperServer.MissingSessionException</node>
+    <node x="115.75" y="240.0">org.apache.zookeeper.server.quorum.LearnerZooKeeperServer</node>
+    <node x="224.0" y="320.0">org.apache.zookeeper.server.quorum.FollowerZooKeeperServer</node>
+    <node x="485.75" y="0.0">org.apache.zookeeper.server.ServerStats.Provider</node>
+    <node x="682.4166666666667" y="160.0">org.apache.zookeeper.server.quorum.ReadOnlyZooKeeperServer</node>
+    <node x="0.0" y="320.0">org.apache.zookeeper.server.quorum.ObserverZooKeeperServer</node>
   </nodes>
   <notes />
   <edges>
     <edge source="org.apache.zookeeper.server.quorum.FollowerZooKeeperServer" target="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="99.5" y="295.0" />
-      <point x="161.75000000000006" y="295.0" />
-      <point x="-48.5" y="15.0" />
+      <point x="323.5" y="295.0" />
+      <point x="261.25" y="295.0" />
+      <point x="48.5" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord" target="org.apache.zookeeper.server.ZooKeeperServer">
       <point x="0.0" y="-15.0" />
+      <point x="595.4166666666667" y="140.0" />
+      <point x="601.75" y="140.0" />
       <point x="0.0" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.ZooKeeperServer.State" target="org.apache.zookeeper.server.ZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="1066.75" y="130.0" />
-      <point x="775.25" y="130.0" />
-      <point x="60.0" y="15.0" />
+      <point x="469.9166666666667" y="140.0" />
+      <point x="571.75" y="140.0" />
+      <point x="-30.0" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.ZooKeeperServer" target="org.apache.zookeeper.server.SessionTracker.SessionExpirer">
       <point x="37.5" y="-15.0" />
-      <point x="752.75" y="55.0" />
-      <point x="782.75" y="55.0" />
+      <point x="639.25" y="55.0" />
+      <point x="669.25" y="55.0" />
       <point x="0.0" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.quorum.LeaderZooKeeperServer" target="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer">
       <point x="-5.6843418860808015E-14" y="-15.0" />
-      <point x="422.25" y="215.0" />
-      <point x="365.75000000000006" y="215.0" />
+      <point x="424.74999999999994" y="215.0" />
+      <point x="361.9166666666667" y="215.0" />
       <point x="49.5" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.ZooKeeperServer.MissingSessionException" target="org.apache.zookeeper.server.ZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="531.75" y="140.0" />
-      <point x="685.25" y="140.0" />
-      <point x="-30.0" y="15.0" />
+      <point x="1004.9166666666667" y="130.0" />
+      <point x="661.75" y="130.0" />
+      <point x="60.0" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer" target="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="210.25000000000006" y="215.0" />
-      <point x="266.75000000000006" y="215.0" />
+      <point x="212.75" y="215.0" />
+      <point x="262.9166666666667" y="215.0" />
       <point x="-49.5" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.quorum.ObserverZooKeeperServer" target="org.apache.zookeeper.server.quorum.LearnerZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="321.00000000000006" y="295.0" />
-      <point x="258.75000000000006" y="295.0" />
-      <point x="48.5" y="15.0" />
+      <point x="102.0" y="295.0" />
+      <point x="164.25" y="295.0" />
+      <point x="-48.5" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.ZooKeeperServer" target="org.apache.zookeeper.server.ServerStats.Provider">
       <point x="-37.5" y="-15.0" />
-      <point x="677.75" y="55.0" />
-      <point x="647.75" y="55.0" />
+      <point x="564.25" y="55.0" />
+      <point x="534.25" y="55.0" />
       <point x="0.0" y="15.0" />
-    </edge>
-    <edge source="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer" target="org.apache.zookeeper.server.ZooKeeperServer">
-      <point x="0.0" y="-15.0" />
-      <point x="316.25000000000006" y="130.0" />
-      <point x="655.25" y="130.0" />
-      <point x="-60.0" y="15.0" />
     </edge>
     <edge source="org.apache.zookeeper.server.quorum.ReadOnlyZooKeeperServer" target="org.apache.zookeeper.server.ZooKeeperServer">
       <point x="0.0" y="-15.0" />
-      <point x="905.25" y="140.0" />
-      <point x="745.25" y="140.0" />
+      <point x="785.4166666666667" y="140.0" />
+      <point x="631.75" y="140.0" />
       <point x="30.0" y="15.0" />
+    </edge>
+    <edge source="org.apache.zookeeper.server.quorum.QuorumZooKeeperServer" target="org.apache.zookeeper.server.ZooKeeperServer">
+      <point x="0.0" y="-15.0" />
+      <point x="312.4166666666667" y="130.0" />
+      <point x="541.75" y="130.0" />
+      <point x="-60.0" y="15.0" />
     </edge>
   </edges>
   <settings layout="Hierarchic Group" zoom="1.0" x="514.0" y="173.0" />
   <SelectedNodes>
-    <node>org.apache.zookeeper.server.quorum.FollowerZooKeeperServer</node>
+    <node>org.apache.zookeeper.server.ZooKeeperServer.ChangeRecord</node>
   </SelectedNodes>
   <Categories>
     <Category>Inner Classes</Category>

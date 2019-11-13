@@ -41,6 +41,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     /**
      * Enable since request processor for writing txnlog to disk and
      * take periodic snapshot. Default is ON.
+     * 由于请求处理器将txnlog写入磁盘并进行定期快照，因此启用。默认为开。
      */
     // 同步处理器是否可用
     private boolean syncRequestProcessorEnabled = this.self.getSyncEnabled();
@@ -69,7 +70,9 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
      * Unlike a Follower, which sees a full request only during the PROPOSAL
      * phase, Observers get all the data required with the INFORM packet. 
      * This method commits a request that has been unpacked by from an INFORM
-     * received from the Leader. 
+     * received from the Leader.
+     * Follower仅在PROPOSAL阶段看到完整的请求，与众不同的是，观察者使用INFORM数据包获取所需的所有数据。
+     * 此方法提交从Leader收到的INFORM提取的请求。
      *      
      * @param request
      */

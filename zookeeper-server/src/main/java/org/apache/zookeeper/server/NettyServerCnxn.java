@@ -395,6 +395,7 @@ public class NettyServerCnxn extends ServerCnxn {
      * 尝试处理以前排队的消息。这应该只从事件循环线程调用
      */
     void processQueuedBuffer() {
+        // TODO: 只应该从事件循环线程调用
         checkIsInEventLoop("processQueuedBuffer");
         if (queuedBuffer != null) {
             if (LOG.isTraceEnabled()) {

@@ -166,7 +166,7 @@ public class NIOServerCnxn extends ServerCnxn {
      * Read the request payload (everything following the length prefix) 读取请求有效负载（长度前缀后面的所有内容）
      */
     private void readPayload() throws IOException, InterruptedException, ClientCnxnLimitException {
-        if (incomingBuffer.remaining() != 0) { // have we read length bytes?
+        if (incomingBuffer.remaining() != 0) { // TODO: 这种情况不会发送！！！
             //对应情况1,此时刚为incomingBuffer分配空间,incomingBuffer为空,进行一次数据读取
             //(1)若将incomingBuffer读满,则直接进行处理;
             //(2)若未将incomingBuffer读满,则说明此次发送的数据不能构成一个完整的请求,则等待下一次数据到达后调用doIo()时再次将数据
@@ -265,6 +265,7 @@ public class NIOServerCnxn extends ServerCnxn {
             // Remove the buffers that we have sent 删除我们发送的缓冲区
             ByteBuffer bb;
             while ((bb = outgoingBuffers.peek()) != null) {
+                // TODO: 关闭连接
                 if (bb == ServerCnxnFactory.closeConn) {
                     throw new CloseRequestException("close requested");
                 }
@@ -488,7 +489,7 @@ public class NIOServerCnxn extends ServerCnxn {
     // register an interest op update request with the selector.
     //
     // Don't support wait disable receive in NIO, ignore the parameter
-    // 改变感兴趣事件 开启读事件
+    // 改变感兴趣事件 禁止读事件
     public void disableRecv(boolean waitDisableRecv) {
         if (throttled.compareAndSet(false, true)) {
             requestInterestOpsUpdate();
@@ -498,7 +499,7 @@ public class NIOServerCnxn extends ServerCnxn {
     // Disable throttling and resume acceptance of new requests. If this
     // entailed a state change, register an interest op update request with
     // the selector.
-    // 改变感兴趣事件 禁止读事件
+    // 改变感兴趣事件 开启读事件
     public void enableRecv() {
         if (throttled.compareAndSet(true, false)) {
             requestInterestOpsUpdate();
@@ -631,6 +632,7 @@ public class NIOServerCnxn extends ServerCnxn {
         // Read the length, now get the buffer 读取长度，现在获取缓冲区
         int len = lenBuffer.getInt();
         // 检查四字母词
+        // TODO: 如果会话未初始化，接收到的len都是四字命令
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
         }

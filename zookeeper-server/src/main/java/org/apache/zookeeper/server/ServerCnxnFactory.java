@@ -53,6 +53,7 @@ public abstract class ServerCnxnFactory {
 
     /**
      * The buffer will cause the connection to be close when we do a send.
+     * 发送缓冲区时，缓冲区将导致连接关闭。
      */
     static final ByteBuffer closeConn = ByteBuffer.allocate(0);
 
