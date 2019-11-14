@@ -40,8 +40,14 @@ public abstract class UpgradeableSessionTracker implements SessionTracker {
 
     public void start() {}
 
-    public void createLocalSessionTracker(SessionExpirer expirer,
-            int tickTime, long id, ZooKeeperServerListener listener) {
+    /**
+     * 创建本地会话追踪
+     * @param expirer
+     * @param tickTime
+     * @param id
+     * @param listener
+     */
+    public void createLocalSessionTracker(SessionExpirer expirer, int tickTime, long id, ZooKeeperServerListener listener) {
         this.localSessionsWithTimeouts =new ConcurrentHashMap<Long, Integer>();
         this.localSessionTracker = new LocalSessionTracker(expirer, this.localSessionsWithTimeouts, tickTime, id, listener);
         this.upgradingSessions = new ConcurrentHashMap<Long, Integer>();
@@ -57,8 +63,7 @@ public abstract class UpgradeableSessionTracker implements SessionTracker {
     }
 
     public boolean isUpgradingSession(long sessionId) {
-        return upgradingSessions != null &&
-            upgradingSessions.containsKey(sessionId);
+        return upgradingSessions != null && upgradingSessions.containsKey(sessionId);
     }
 
     public void finishedUpgrading(long sessionId) {

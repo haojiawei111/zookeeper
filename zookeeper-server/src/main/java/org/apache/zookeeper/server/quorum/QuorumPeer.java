@@ -1200,15 +1200,27 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return electionAlg;
     }
 
-    synchronized protected void setLeader(Leader newLeader){
+	/**
+	 * 如果本机器的Leader调用这个方法
+	 * @param newLeader
+	 */
+	synchronized protected void setLeader(Leader newLeader){
         leader=newLeader;
     }
 
-    synchronized protected void setFollower(Follower newFollower){
+	/**
+	 * 如果本机器的Follower调用这个方法
+	 * @param newFollower
+	 */
+	synchronized protected void setFollower(Follower newFollower){
         follower=newFollower;
     }
 
-    synchronized protected void setObserver(Observer newObserver){
+	/**
+	 * 如果本机器的Observer调用这个方法
+	 * @param newObserver
+	 */
+	synchronized protected void setObserver(Observer newObserver){
         observer=newObserver;
     }
 
@@ -1584,7 +1596,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         localSessionsEnabled = flag;
     }
 
-    /** Whether local sessions are allowed to upgrade to global sessions */
+    /** Whether local sessions are allowed to upgrade to global sessions 是否允许本地会话升级到全局会话 */
     public boolean isLocalSessionsUpgradingEnabled() {
         return localSessionsUpgradingEnabled;
     }

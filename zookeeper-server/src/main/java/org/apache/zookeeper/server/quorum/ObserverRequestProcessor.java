@@ -68,17 +68,21 @@ public class ObserverRequestProcessor extends ZooKeeperCriticalThread implements
     public void run() {
         try {
             while (!finished) {
+                // 取出请求
                 Request request = queuedRequests.take();
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK,
                             'F', request, "");
                 }
+
+                // 如果是关闭的请求，关闭处理器
                 if (request == Request.requestOfDeath) {
                     break;
                 }
                 // We want to queue the request to be processed before we submit
                 // the request to the leader so that we are ready to receive
                 // the response
+                // TODO: 直接往后面的处理器发送
                 nextProcessor.processRequest(request);
 
                 // We now ship the request to the leader. As with all
@@ -87,7 +91,7 @@ public class ObserverRequestProcessor extends ZooKeeperCriticalThread implements
                 // of the sync operations this Observer has pending, so we
                 // add it to pendingSyncs.
                 switch (request.type) {
-                case OpCode.sync:
+                case OpCode.sync://如果是同步请求
                     zks.pendingSyncs.add(request);
                     zks.getObserver().request(request);
                     break;
@@ -102,12 +106,15 @@ public class ObserverRequestProcessor extends ZooKeeperCriticalThread implements
                 case OpCode.setACL:
                 case OpCode.multi:
                 case OpCode.check:
+                    // 事务操作，直接往leader发送
                     zks.getObserver().request(request);
                     break;
                 case OpCode.createSession:
                 case OpCode.closeSession:
                     // Don't forward local sessions to the leader.
+                    // 不要将本地会议转发给领导。
                     if (!request.isLocalSession()) {
+                        // 如果不是本地Session，就 往leader发送
                         zks.getObserver().request(request);
                     }
                     break;
@@ -121,11 +128,13 @@ public class ObserverRequestProcessor extends ZooKeeperCriticalThread implements
 
     /**
      * Simply queue the request, which will be processed in FIFO order.
+     * 只需将请求排队，将按FIFO顺序处理。
      */
     public void processRequest(Request request) {
         if (!finished) {
             Request upgradeRequest = null;
             try {
+                // TODO: 检查是否要升级会话
                 upgradeRequest = zks.checkUpgradeSession(request);
             } catch (KeeperException ke) {
                 if (request.getHdr() != null) {

@@ -33,8 +33,7 @@ import org.slf4j.LoggerFactory;
  * to the leader should go through this processor.
  */
 public class LeaderRequestProcessor implements RequestProcessor {
-    private static final Logger LOG = LoggerFactory
-            .getLogger(LeaderRequestProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LeaderRequestProcessor.class);
 
     private final LeaderZooKeeperServer lzks;
 
@@ -52,6 +51,7 @@ public class LeaderRequestProcessor implements RequestProcessor {
         // an ephemeral node, in which case we upgrade the session
         Request upgradeRequest = null;
         try {
+            // TODO: 单独检查是否要升级请求
             upgradeRequest = lzks.checkUpgradeSession(request);
         } catch (KeeperException ke) {
             if (request.getHdr() != null) {
@@ -66,7 +66,7 @@ public class LeaderRequestProcessor implements RequestProcessor {
             LOG.error("Unexpected error in upgrade", ie);
         }
         if (upgradeRequest != null) {
-            //升级请求
+            // 这里的升级会话请求不需要转发，因为这个服务器就是leader，直接交给下一个处理器
             nextProcessor.processRequest(upgradeRequest);
         }
 

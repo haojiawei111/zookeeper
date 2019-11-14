@@ -26,13 +26,12 @@ import org.apache.zookeeper.server.ZooKeeperServerListener;
  * Local session tracker.
  */
 public class LocalSessionTracker extends SessionTrackerImpl {
-    public LocalSessionTracker(SessionExpirer expirer,
-            ConcurrentMap<Long, Integer> sessionsWithTimeouts,
-            int tickTime, long id, ZooKeeperServerListener listener) {
+    public LocalSessionTracker(SessionExpirer expirer, ConcurrentMap<Long, Integer> sessionsWithTimeouts, int tickTime, long id, ZooKeeperServerListener listener) {
         super(expirer, sessionsWithTimeouts, tickTime, id, listener);
     }
 
     public boolean isLocalSession(long sessionId) {
+        // 如果此会话追踪器包含sessionId就返回true
         return isTrackingSession(sessionId);
     }
 

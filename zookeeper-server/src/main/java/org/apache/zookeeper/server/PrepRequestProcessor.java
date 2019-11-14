@@ -118,7 +118,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     // 仅用作测试使用
     private static  boolean failCreate = false;
 
-    // 已提交请求队列
+    // TODO: 请求队列
     LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<Request>();
 
     // 下个处理器
@@ -130,8 +130,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     //构造函数首先会调用父类Thread的构造函数，然后利用构造函数参数给nextProcessor和zks赋值
     public PrepRequestProcessor(ZooKeeperServer zks, RequestProcessor nextProcessor) {
         // 调用父类Thread构造函数
-        super("ProcessThread(sid:" + zks.getServerId() + " cport:"
-                + zks.getClientPort() + "):", zks.getZooKeeperServerListener());
+        super("ProcessThread(sid:" + zks.getServerId() + " cport:" + zks.getClientPort() + "):", zks.getZooKeeperServerListener());
         // 类属性赋值
         this.nextProcessor = nextProcessor;
         this.zks = zks;
@@ -153,7 +152,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
             while (true) {
                 // 更新Metrics监控
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_SIZE.add(submittedRequests.size());
-                // 从队列中取出一个请求
+                // TODO: 从队列中取出一个请求
                 Request request = submittedRequests.take();
                 long traceMask = ZooTrace.CLIENT_REQUEST_TRACE_MASK;
                 if (request.type == OpCode.ping) {// 请求类型为PING 心跳请求
@@ -230,7 +229,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      * @return a map that contains previously existed records that probably need to be
      *         rolled back in any failure.
      */
-    // 会遍历多重操作，针对每个操作，通过其路径获取对应的Record，然后添加至pendingChangeRecords，然后对其父节点进行相应操作，之后返回，其中会调用getOutstandingChange函数
+    // TODO: 会遍历多重操作
+    // 针对每个操作，通过其路径获取对应的Record，然后添加至pendingChangeRecords，然后对其父节点进行相应操作，之后返回，其中会调用getOutstandingChange函数
     private Map<String, ChangeRecord> getPendingChanges(MultiTransactionRecord multiRequest) {
         Map<String, ChangeRecord> pendingChangeRecords = new HashMap<String, ChangeRecord>();
 
@@ -399,13 +399,11 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     // pRequest2Txn会根据不同的请求类型进行不同的验证，如对创建节点而言，其会进行会话验证，ACL列表验证，节点路径验证及判断创建节点的类型（顺序节点、临时节点等）而进行不同操作，
     // 同时还会使父节点的子节点数目加1
     // 之后会再调用addChangeRecord函数将ChangeRecord添加至ZooKeeperServer的outstandingChanges和outstandingChangesForPath中。
-    protected void pRequest2Txn(int type, long zxid, Request request,
-                                Record record, boolean deserialize)
-        throws KeeperException, IOException, RequestProcessorException
-    {
+    protected void pRequest2Txn(int type, long zxid, Request request, Record record, boolean deserialize)
+        throws KeeperException, IOException, RequestProcessorException {
         //生成事务头，完成acl，path验证，进行count，version对应修改，将改动记录在zks.outstandingChanges 等
-        request.setHdr(new TxnHeader(request.sessionId, request.cxid, zxid,
-                Time.currentWallTime(), type));
+        request.setHdr(new TxnHeader(request.sessionId, request.cxid, zxid, Time.currentWallTime(), type));
+
 
         switch (type) { // 确定类型
             case OpCode.create:// 创建节点操作
@@ -416,6 +414,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 pRequest2TxnCreate(type, request, record, deserialize);
                 break;
             }
+
             case OpCode.deleteContainer: {
                 String path = new String(request.request.array());
                 String parentPath = getParentPathAndValidate(path);
@@ -434,6 +433,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 addChangeRecord(new ChangeRecord(request.getHdr().getZxid(), path, null, -1, null));
                 break;
             }
+
             case OpCode.delete:
                 // 检查会话，检查会话持有者是否为该owner
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
@@ -467,6 +467,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // 将新生成的ChangeRecord(包含了StatPersisted信息)添加至outstandingChanges和outstandingChangesForPath中
                 addChangeRecord(new ChangeRecord(request.getHdr().getZxid(), path, null, -1, null));
                 break;
+
             case OpCode.setData: // 设置数据请求
                 // 检查会话，检查会话持有者是否为该owner
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
@@ -492,6 +493,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // 将nodeRecord添加至outstandingChanges和outstandingChangesForPath中
                 addChangeRecord(nodeRecord);
                 break;
+
             case OpCode.reconfig:
                 if (!QuorumPeerConfig.isReconfigEnabled()) {
                     LOG.error("Reconfig operation requested but reconfig feature is disabled.");
@@ -625,6 +627,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 nodeRecord.stat.setVersion(-1);
                 addChangeRecord(nodeRecord);
                 break;
+
             case OpCode.setACL:
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 SetACLRequest setAclRequest = (SetACLRequest)record;
@@ -641,6 +644,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 nodeRecord.stat.setAversion(newVersion);
                 addChangeRecord(nodeRecord);
                 break;
+
             case OpCode.createSession:// 创建会话请求
                 // 将request缓冲区rewind
                 request.request.rewind();
@@ -656,6 +660,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // 设置会话的owner
                 zks.setOwner(request.sessionId, request.getOwner());
                 break;
+
             case OpCode.closeSession:// 关闭会话请求
                 // We don't want to do this check since the session expiration thread
                 // queues up this operation without being the session owner.
@@ -690,6 +695,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 }
                 ServerMetrics.getMetrics().CLOSE_SESSION_PREP_TIME.add(Time.currentElapsedTime() - startTime);
                 break;
+
             case OpCode.check:// 检查请求
                 // 检查会话，检查会话持有者是否为该owner
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
@@ -825,13 +831,13 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     protected void pRequest(Request request) throws RequestProcessorException {
         // LOG.info("Prep>>> cxid = " + request.cxid + " type = " +
         // request.type + " id = 0x" + Long.toHexString(request.sessionId));
-        // 将请求的hdr和txn设置为null
+        // TODO: 将请求的hdr和txn设置为null
         request.setHdr(null);
         request.setTxn(null);
 
         try {
             //根据request.type区分是否是事务请求
-            switch (request.type) {// 确定请求类型
+            switch (request.type)  {// 确定请求类型
             case OpCode.createContainer:// 创建节点请求
             case OpCode.create:
             case OpCode.create2:
@@ -874,8 +880,8 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 // 如果是事务请求，调用pRequest2Txn
                 pRequest2Txn(request.type, zks.getNextZxid(), request, checkRequest, true);
                 break;
-            case OpCode.multi:// 多重请求
-                // 多重请求
+            case OpCode.multi:// 批量请求
+                // 批量请求
                 MultiTransactionRecord multiRequest = new MultiTransactionRecord();
                 try {
                     // 将ByteBuffer转化为Record
@@ -886,6 +892,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                             Time.currentWallTime(), OpCode.multi));
                     throw e;
                 }
+                // TODO：对请求预处理后放入这个list中
                 List<Txn> txns = new ArrayList<Txn>();
                 // Each op in a multi-op must have the same zxid!
                 // TODO: 多操作中的每个操作必须具有相同的zxid！
@@ -918,6 +925,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                             pRequest2Txn(op.getType(), zxid, request, subrequest, false);
                             type = request.getHdr().getType();
                             txn = request.getTxn();
+
                         } catch (KeeperException e) {// 转化发生异常
                             ke = e;
                             type = OpCode.error;
@@ -949,10 +957,10 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                     }
                 }
 
-                // 给请求头赋值
+                // TODO: 给请求头赋值
                 request.setHdr(new TxnHeader(request.sessionId, request.cxid, zxid,
                         Time.currentWallTime(), request.type));
-                // 设置请求的Txn
+                // TODO: 设置请求的Txn
                 request.setTxn(new MultiTxn(txns));
 
                 break;
@@ -1076,7 +1084,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      * @param authInfo list of ACL IDs associated with the client connection
      * @param acls list of ACLs being assigned to the node (create or setACL operation)
      * @return verified and expanded ACLs
-     * @throws KeeperException.InvalidACLException
+     *  @throws KeeperException.InvalidACLException
      */
     private List<ACL> fixupACL(String path, List<Id> authInfo, List<ACL> acls)
         throws KeeperException.InvalidACLException {
@@ -1130,7 +1138,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     // processRequest:生产者，将请求放入队列
     // 将request加到submittedRequests中
     public void processRequest(Request request) {
-        //放入请求队列的时间
+        //放入请求队列并更新request的prepQueueStartTime时间
         request.prepQueueStartTime =  Time.currentElapsedTime();
         submittedRequests.add(request);
         ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUED.add(1);

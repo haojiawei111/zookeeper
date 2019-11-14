@@ -38,9 +38,10 @@ import org.slf4j.LoggerFactory;
  * processors chain. All it does is, it passes read-only operations (e.g.
  * OpCode.getData, OpCode.exists) through to the next processor, but drops
  * state-changing operations (e.g. OpCode.create, OpCode.setData).
+ * 该处理器位于ReadOnlyZooKeeperServer处理器链的开始。
+ * TODO: 它所做的只是将只读操作（例如OpCode.getData，OpCode.exists）传递到下一个处理器，但会丢弃状态更改操作（例如OpCode.create，OpCode.setData）。
  */
-public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements
-        RequestProcessor {
+public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReadOnlyRequestProcessor.class);
 
@@ -63,6 +64,7 @@ public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements
     public void run() {
         try {
             while (!finished) {
+                // 取出请求
                 Request request = queuedRequests.take();
 
                 // log request
@@ -73,11 +75,12 @@ public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logRequest(LOG, traceMask, 'R', request, "");
                 }
+                // 关闭处理器
                 if (Request.requestOfDeath == request) {
                     break;
                 }
 
-                // filter read requests
+                // TODO: 下面命中的请求都将转发给leader,命中就是事务请求
                 switch (request.type) {
                 case OpCode.sync:
                 case OpCode.create:
@@ -91,8 +94,7 @@ public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements
                 case OpCode.setACL:
                 case OpCode.multi:
                 case OpCode.check:
-                    ReplyHeader hdr = new ReplyHeader(request.cxid, zks.getZKDatabase()
-                            .getDataTreeLastProcessedZxid(), Code.NOTREADONLY.intValue());
+                    ReplyHeader hdr = new ReplyHeader(request.cxid, zks.getZKDatabase().getDataTreeLastProcessedZxid(), Code.NOTREADONLY.intValue());
                     try {
                         request.cnxn.sendResponse(hdr, null, null);
                     } catch (IOException e) {

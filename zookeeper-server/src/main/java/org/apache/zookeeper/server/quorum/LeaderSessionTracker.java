@@ -47,13 +47,9 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
      */
     private final long serverId;
 
-    public LeaderSessionTracker(SessionExpirer expirer,
-            ConcurrentMap<Long, Integer> sessionsWithTimeouts,
-            int tickTime, long id, boolean localSessionsEnabled,
-            ZooKeeperServerListener listener) {
-
-        this.globalSessionTracker = new SessionTrackerImpl(
-            expirer, sessionsWithTimeouts, tickTime, id, listener);
+    public LeaderSessionTracker(SessionExpirer expirer, ConcurrentMap<Long, Integer> sessionsWithTimeouts, int tickTime, long id, boolean localSessionsEnabled, ZooKeeperServerListener listener) {
+        // TODO: 创建全局会话跟踪器
+        this.globalSessionTracker = new SessionTrackerImpl(expirer, sessionsWithTimeouts, tickTime, id, listener);
 
         this.localSessionsEnabled = localSessionsEnabled;
         if (this.localSessionsEnabled) {

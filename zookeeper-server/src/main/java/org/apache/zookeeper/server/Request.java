@@ -152,7 +152,7 @@ public class Request {
     static boolean isValid(int type) {
         // make sure this is always synchronized with Zoodefs!!
         switch (type) {
-        case OpCode.notification:
+        case OpCode.notification:// 通知
             return false;
         case OpCode.check:
         case OpCode.closeSession:

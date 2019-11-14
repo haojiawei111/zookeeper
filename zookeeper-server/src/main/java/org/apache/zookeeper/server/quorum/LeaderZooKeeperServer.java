@@ -153,7 +153,7 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
      * Requests coming from the learner should go directly to
      * PrepRequestProcessor
      *
-     * 来自 learner 的请求应直接转到 PrepRequestProcessor
+     * TODO: 来自 learner 的请求应直接转到 PrepRequestProcessor
      *
      * @param request
      */

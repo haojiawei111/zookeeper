@@ -574,6 +574,7 @@ public class LearnerHandler extends ZooKeeperThread {
                 if (LOG.isTraceEnabled()) {
                     ZooTrace.logQuorumPacket(LOG, traceMask, 'i', qp);
                 }
+
                 tickOfNextAckDeadline = learnerMaster.getTickOfNextAckDeadline();
 
 
@@ -582,8 +583,9 @@ public class LearnerHandler extends ZooKeeperThread {
                 int cxid;
                 int type;
 
+                // 提议类型
                 switch (qp.getType()) {
-                case Leader.ACK:
+                case Leader.ACK: // ACK回应
                     if (this.learnerType == LearnerType.OBSERVER) {
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("Received ACK from Observer  " + this.sid);
@@ -592,7 +594,7 @@ public class LearnerHandler extends ZooKeeperThread {
                     syncLimitCheck.updateAck(qp.getZxid());
                     learnerMaster.processAck(this.sid, qp.getZxid(), sock.getLocalSocketAddress());
                     break;
-                case Leader.PING:
+                case Leader.PING: // ping
                     // Process the touches
                     ByteArrayInputStream bis = new ByteArrayInputStream(qp
                             .getData());
@@ -603,11 +605,11 @@ public class LearnerHandler extends ZooKeeperThread {
                         learnerMaster.touch(sess, to);
                     }
                     break;
-                case Leader.REVALIDATE:
+                case Leader.REVALIDATE:// 重新验证请求
                     ServerMetrics.getMetrics().REVALIDATE_COUNT.add(1);
                     learnerMaster.revalidateSession(qp, this);
                     break;
-                case Leader.REQUEST:
+                case Leader.REQUEST: // 请求
                     bb = ByteBuffer.wrap(qp.getData());
                     sessionId = bb.getLong();
                     cxid = bb.getInt();

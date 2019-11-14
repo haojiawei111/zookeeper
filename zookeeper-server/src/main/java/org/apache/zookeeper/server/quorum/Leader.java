@@ -1633,6 +1633,13 @@ public class Leader implements LearnerMaster {
         return (self == null) ? null : self.authServer;
     }
 
+    /**
+     * 重新验证会话
+     *
+     * @param qp session packet
+     * @param learnerHandler learner
+     * @throws IOException
+     */
     @Override
     public void revalidateSession(QuorumPacket qp, LearnerHandler learnerHandler) throws IOException {
         ByteArrayInputStream bis = new ByteArrayInputStream(qp.getData());

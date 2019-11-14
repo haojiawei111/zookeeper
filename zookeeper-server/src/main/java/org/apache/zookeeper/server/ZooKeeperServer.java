@@ -121,7 +121,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     private FileTxnSnapLog txnLogFactory = null;
     // Zookeeper内存数据库
     private ZKDatabase zkDb;
+
     private ResponseCache readResponseCache;
+
     private final AtomicLong hzxid = new AtomicLong(0);
     // 异常
     public final static Exception ok = new Exception("No prob");
@@ -143,12 +145,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      */
     // 生成密码的密钥
     static final private long superSecret = 0XB3415C00L;
-    //正在处理的请求个数
+    //TODO: 正在请求处理链中处理的请求个数
     private final AtomicInteger requestsInProcess = new AtomicInteger(0);
 
     // 未处理的ChangeRecord  变更列表
     final Deque<ChangeRecord> outstandingChanges = new ArrayDeque<>();
     // this data structure must be accessed under the outstandingChanges lock
+
     // 记录path对应的ChangeRecord
     final Map<String, ChangeRecord> outstandingChangesForPath = new HashMap<String, ChangeRecord>();
 
@@ -527,6 +530,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
         long id = cnxn.getSessionId();
         int to = cnxn.getSessionTimeout();
+        // 激活会话
         if (!sessionTracker.touchSession(id, to)) {
             throw new MissingSessionException(
                     "No session with sessionid 0x" + Long.toHexString(id)
@@ -580,7 +584,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         registerJMX();
         // 启动jvm停顿监控
         startJvmPauseMonitor();
-
+        // 设置服务器状态为运行
         setState(State.RUNNING);
         notifyAll();
     }
@@ -622,11 +626,16 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         createSessionTrackerServerId = newId;
     }
 
-    protected void createSessionTracker() {
-        sessionTracker = new SessionTrackerImpl(this, zkDb.getSessionWithTimeOuts(),
-                tickTime, createSessionTrackerServerId, getZooKeeperServerListener());
+	/**
+	 * TODO: 创建会话追踪器
+	 * TODO: leader用的会话追踪器是LeaderSessionTracker, learner用的会话追踪器是LearnerSessionTracker,只读服务器和单机模式用的会话追踪器是SessionTrackerImpl
+	 */
+	protected void createSessionTracker() {
+        sessionTracker = new SessionTrackerImpl(this, zkDb.getSessionWithTimeOuts(), tickTime, createSessionTrackerServerId, getZooKeeperServerListener());
     }
-    // 启动会话跟踪模块
+	/**
+	 * TODO: 启动会话跟踪模块
+	 */
     protected void startSessionTracker() {
         ((SessionTrackerImpl)sessionTracker).start();
     }
@@ -949,13 +958,16 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      */
     public void submitRequest(Request si) {
         if (firstProcessor == null) {
+            // 还没有初始化完成
             synchronized (this) {
                 try {
                     // Since all requests are passed to the request
                     // processor it should wait for setting up the request
                     // processor chain. The state will be updated to RUNNING
                     // after the setup.
+                    // 由于所有请求都传递到请求处理器，因此它应该等待建立请求处理器链。更新设置状态将为RUNNING。
                     while (state == State.INITIAL) {
+                        // 进行等待
                         wait(1000);
                     }
                 } catch (InterruptedException e) {
@@ -970,8 +982,10 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             touch(si.cnxn);
             boolean validpacket = Request.isValid(si.type);
             if (validpacket) {
+                // 是zookeeper的有效包
                 firstProcessor.processRequest(si);
                 if (si.cnxn != null) {
+                    // 统计此cnxn对应的在请求处理链中处理的请求
                     incInProcess();
                 }
             } else {

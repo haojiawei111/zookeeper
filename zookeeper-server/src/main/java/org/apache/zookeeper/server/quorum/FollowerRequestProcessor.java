@@ -66,14 +66,14 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                     ZooTrace.logRequest(LOG, ZooTrace.CLIENT_REQUEST_TRACE_MASK,
                             'F', request, "");
                 }
-                // 如果是关闭的请求，退出线程
+                // 如果是关闭的请求，关闭处理器
                 if (request == Request.requestOfDeath) {
                     break;
                 }
                 // We want to queue the request to be processed before we submit
                 // the request to the leader so that we are ready to receive
                 // the response
-                // 除了requestOfDeath请求，其他所有请求都传递给后面的处理链
+                // TODO: 直接往后面的处理器发送
                 // 先交给CommitProcessor，最终投票通过后，会通过CommitProcessor的commit方法最终提交事务
                 nextProcessor.processRequest(request);
 
@@ -102,7 +102,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 case OpCode.setACL:
                 case OpCode.multi:
                 case OpCode.check:
-                    // 转发事务请求给leader
+                    // TODO: 转发事务请求给leader
                     zks.getFollower().request(request);
                     break;
                 case OpCode.createSession:
@@ -110,7 +110,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                     // Don't forward local sessions to the leader.
                     // 不要将本地会话转发给领导者。
                     if (!request.isLocalSession()) {
-                        // 创建回话和关闭会话，但不是本地会话就会发送请求给leader
+                        // 如果不是本地会话，就转发给leader
                         zks.getFollower().request(request);
                     }
                     break;
@@ -134,6 +134,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                 // an upgrade.
                 Request upgradeRequest = null;
                 try {
+                    // TODO: 检查是否要升级会话
                     upgradeRequest = zks.checkUpgradeSession(request);
                 } catch (KeeperException ke) {
                     if (request.getHdr() != null) {
@@ -146,6 +147,7 @@ public class FollowerRequestProcessor extends ZooKeeperCriticalThread implements
                     LOG.error("Unexpected error in upgrade", ie);
                 }
                 if (upgradeRequest != null) {
+                    // 如果upgradeRequest不为空，那么这个upgradeRequest是一个升级会话的请求，这个请求会被转发给leader
                     queuedRequests.add(upgradeRequest);
                 }
             }

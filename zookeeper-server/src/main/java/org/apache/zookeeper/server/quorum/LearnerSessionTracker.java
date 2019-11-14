@@ -87,7 +87,7 @@ public class LearnerSessionTracker extends UpgradeableSessionTracker {
         touchTable.get().remove(sessionId);
     }
 
-    // 启动时只启动了localSessionTracker：
+    // TODO: 启动时只启动了localSessionTracker：
     public void start() {
         if (localSessionTracker != null) {
             localSessionTracker.start();
@@ -169,8 +169,7 @@ public class LearnerSessionTracker extends UpgradeableSessionTracker {
         return nextSessionId.getAndIncrement();
     }
 
-    public void checkSession(long sessionId, Object owner)
-            throws SessionExpiredException, SessionMovedException  {
+    public void checkSession(long sessionId, Object owner) throws SessionExpiredException, SessionMovedException  {
         if (localSessionTracker != null) {
             try {
                 localSessionTracker.checkSession(sessionId, owner);

@@ -48,6 +48,7 @@ public class BlueThrottleTest extends ZKTestCase {
         public BlueThrottleWithMockRandom(MockRandom random) {
             super();
             this.rng = random;
+            // 注意这里引用了自己
             random.throttle = this;
         }
     }
@@ -76,7 +77,9 @@ public class BlueThrottleTest extends ZKTestCase {
         Assert.assertFalse("Second request should be denied", throttler.checkLimit(1));
 
         //wait for the bucket to be refilled
+        // 等待桶装满
         Thread.sleep(750);
+        // 由于我们有了新的令牌，因此应允许第三次请求
         Assert.assertTrue("Third request should be allowed since we've got a new token", throttler.checkLimit(1));
     }
 
@@ -90,11 +93,14 @@ public class BlueThrottleTest extends ZKTestCase {
 
         for (int i=0;i<maxTokens;i++) {
             throttler.checkLimit(1);
+            System.out.println("用了"+throttler.getDeficit()+"个token");
         }
+        // 现在所有令牌都应该用完
         Assert.assertEquals("All tokens should be used up by now", throttler.getMaxTokens(), throttler.getDeficit());
 
         Thread.sleep(110);
         throttler.checkLimit(1);
+        System.out.println("用了"+throttler.getDeficit()+"个token");
         Assert.assertFalse("Dropping probability should still be zero", throttler.getDropChance()>0);
 
         //allow bucket to be refilled
@@ -102,6 +108,7 @@ public class BlueThrottleTest extends ZKTestCase {
 
         for (int i=0;i<maxTokens;i++) {
             Assert.assertTrue("The first " + maxTokens + " requests should be allowed", throttler.checkLimit(1));
+            System.out.println("用了"+throttler.getDeficit()+"个token");
         }
 
         for (int i=0;i<maxTokens;i++) {
@@ -116,16 +123,19 @@ public class BlueThrottleTest extends ZKTestCase {
         throttler.setMaxTokens(maxTokens);
         throttler.setFillCount(maxTokens);
         throttler.setFillTime(1000);
+        // 注意这里可以设置概率，如果设置，每次拿令牌就可能拿不到令牌
         throttler.setFreezeTime(100);
         throttler.setDropIncrease(0.5);
 
         for (int i=0;i<maxTokens;i++)
             throttler.checkLimit(1);
+        System.out.println("用了"+throttler.getDeficit()+"个token");
         Assert.assertEquals("All tokens should be used up by now", throttler.getMaxTokens(), throttler.getDeficit());
 
         Thread.sleep(120);
-        //this will trigger dropping probability being increased
-        throttler.checkLimit(1);
+        //this will trigger dropping probability being increased 这将导致下降的可能性增加
+        System.out.println(throttler.checkLimit(1));
+        System.out.println("用了"+throttler.getDeficit()+"个token");
         Assert.assertTrue("Dropping probability should be increased", throttler.getDropChance()>0);
         LOG.info("Dropping probability is {}", throttler.getDropChance());
 
@@ -136,6 +146,7 @@ public class BlueThrottleTest extends ZKTestCase {
         int accepted = 0;
         for (int i=0;i<maxTokens;i++) {
             if (throttler.checkLimit(1)) {
+                System.out.println("用了"+throttler.getDeficit()+"个token");
                 accepted ++;
             }
         }

@@ -63,14 +63,19 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
         // This is called by the request processor thread (either follower
         // or observer request processor), which is unique to a learner.
         // So will not be called concurrently by two threads.
-        // 如果这是对本地会话的请求，并且它是创建临时节点，则升级会话并为该领导者返回新的会话请求。
-        // 这由请求处理器线程（跟随者或观察者请求处理器）调用，这对于学习者来说是唯一的。因此不会被两个线程同时调用。
-        if ((request.type != OpCode.create && request.type != OpCode.create2 && request.type != OpCode.multi) ||
-            !upgradeableSessionTracker.isLocalSession(request.sessionId)) {
+        // TODO: 如果这是对本地会话的请求，并且要创建一个临时节点，则升级该会话并返回针对领导者的新会话请求。
+		// 这是由请求处理器线程（跟随者或观察者请求处理器）调用的，对于学习者而言是唯一的。所以不会被两个线程同时调用。
+        if ((request.type != OpCode.create
+				&& request.type != OpCode.create2
+				&& request.type != OpCode.multi)
+				|| !upgradeableSessionTracker.isLocalSession(request.sessionId)) {
+        	// TODO: 不升级会话
             return null;
         }
 
-        if (OpCode.multi == request.type) {
+        // TODO: 程序走到这里，请求一定是OpCode.create、OpCode.create2、OpCode.multi其中一种并且会话ID在会话追踪器中是本地会话
+		// TODO: 下面判断
+        if (OpCode.multi == request.type) {// 批量操作
             MultiTransactionRecord multiTransactionRecord = new MultiTransactionRecord();
             request.request.rewind();
             ByteBufferInputStream.byteBuffer2Record(request.request, multiTransactionRecord);
@@ -79,14 +84,17 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
             for (Op op : multiTransactionRecord) {
                 if (op.getType() == OpCode.create || op.getType() == OpCode.create2) {
                     CreateRequest createRequest = (CreateRequest)op.toRequestRecord();
+                    // 创建的节点类型
                     CreateMode createMode = CreateMode.fromFlag(createRequest.getFlags());
                     if (createMode.isEphemeral()) {
+                    	// 创建的是临时节点
                         containsEphemeralCreate = true;
                         break;
                     }
                 }
             }
             if (!containsEphemeralCreate) {
+            	// TODO: 不升级会话
                 return null;
             }
         } else {
@@ -94,17 +102,22 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
             request.request.rewind();
             ByteBufferInputStream.byteBuffer2Record(request.request, createRequest);
             request.request.rewind();
+            // 节点类型
             CreateMode createMode = CreateMode.fromFlag(createRequest.getFlags());
             if (!createMode.isEphemeral()) {
+				// TODO: 如果不是创建临时节点，不升级会话
                 return null;
             }
         }
 
+		// TODO: 程序走到这里，请求一定是OpCode.create、OpCode.create2、OpCode.multi其中一种并且包含创建临时节点的操作并且会话ID在会话追踪器中是本地会话
+
         // Uh oh.  We need to upgrade before we can proceed.
+        // 哦哦我们需要先进行升级，然后才能继续。
         if (!self.isLocalSessionsUpgradingEnabled()) {
             throw new KeeperException.EphemeralOnLocalSessionException();
         }
-
+        // TODO: 升级会话
         return makeUpgradeRequest(request.sessionId);
     }
 
@@ -112,13 +125,15 @@ public abstract class QuorumZooKeeperServer extends ZooKeeperServer {
         // Make sure to atomically check local session status, upgrade
         // session, and make the session creation request.  This is to
         // avoid another thread upgrading the session in parallel.
+        // 确保自动检查本地会话状态，升级会话并发出会话创建请求。这是为了避免另一个线程并行升级会话。
         synchronized (upgradeableSessionTracker) {
             if (upgradeableSessionTracker.isLocalSession(sessionId)) {
+            	// 升级会话
                 int timeout = upgradeableSessionTracker.upgradeSession(sessionId);
                 ByteBuffer to = ByteBuffer.allocate(4);
                 to.putInt(timeout);
-                return new Request(
-                        null, sessionId, 0, OpCode.createSession, to, null);
+                // TODO: 返回创建会话的请求
+                return new Request(null, sessionId, 0, OpCode.createSession, to, null);
             }
         }
         return null;

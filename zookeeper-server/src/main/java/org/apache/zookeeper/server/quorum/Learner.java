@@ -152,7 +152,7 @@ public class Learner {
     
     /**
      * write a packet to the leader
-     * 写一个packet包给leader
+     * TODO: 写一个packet包给leader
      *
      * @param pp
      *                the proposal packet to be sent to the leader
@@ -161,6 +161,7 @@ public class Learner {
     void writePacket(QuorumPacket pp, boolean flush) throws IOException {
         synchronized (leaderOs) {
             if (pp != null) {
+                // 向leader转发一个请求
                 leaderOs.writeRecord(pp, "packet");
             }
             if (flush) {
@@ -192,7 +193,7 @@ public class Learner {
     
     /**
      * send a request packet to the leader
-     * 向领导者发送请求包
+     * TODO: 向leader发送请求包
      *
      * 所有请求都被LEADER处理，learner接收到请求会转发给Leader
      *

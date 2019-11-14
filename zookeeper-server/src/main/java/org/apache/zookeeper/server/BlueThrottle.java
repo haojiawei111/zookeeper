@@ -234,7 +234,7 @@ public class BlueThrottle {
     public synchronized double getDropChance() {
         return drop;
     }
-
+    // TODO: 返回使用的token数
     public synchronized int getDeficit() {
         return maxTokens - tokens;
     }
