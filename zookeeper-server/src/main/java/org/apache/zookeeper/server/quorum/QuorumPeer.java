@@ -977,6 +977,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     private void loadDataBase() {
         try {
+            // 初始化ZK的dataTree并把
             zkDb.loadDataBase();
 
             // load the epochs

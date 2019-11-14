@@ -264,12 +264,14 @@ public class ZKDatabase {
      *
      * load the database from the disk onto memory and also add
      * the transactions to the committedlog in memory.
-     * @return the last valid zxid on disk
+     * 从磁盘将数据库加载到内存中，并将事务添加到内存中的commitlog中。
+     *
+     * @return the last valid zxid on disk 磁盘上的最后一个有效zxid
      * @throws IOException
      */
     public long loadDataBase() throws IOException {
         long startTime = Time.currentElapsedTime();
-        // commitProposalPlaybackListener 回调函数
+        // TODO: commitProposalPlaybackListener 回调函数，这个函数就是将事务添加到内存中的commitlog中
         long zxid = snapLog.restore(dataTree, sessionsWithTimeouts, commitProposalPlaybackListener);
         // 初始化完成
         initialized = true;
@@ -292,6 +294,7 @@ public class ZKDatabase {
 
     /**
      * 把事务包装成请求并执行#addCommittedProposal()
+     *
      * @param hdr
      * @param txn
      */
@@ -304,7 +307,7 @@ public class ZKDatabase {
      * maintains a list of last <i>committedLog</i>
      *  or so committed requests. This is used for
      * fast follower synchronization.
-     * 维护最后<i> committedLog </ i> *或已提交请求的列表。这用于快速跟随者同步。
+     * 维护最后<i> committedLog </ i> *或已提交请求的列表。TODO: 这用于快速跟随者同步。
      * @param request committed request
      */
     public void addCommittedProposal(Request request) {

@@ -266,8 +266,10 @@ public class FileTxnSnapLog {
      * This function will fast forward the server database to have the latest
      * transactions in it.  This is the same as restore, but only reads from
      * the transaction logs and not restores from a snapshot.
-     * 此函数将快速转发服务器数据库以在其中包含最新的事务。
-     * 这与还原相同，但只从事务日志读取而不从快照还原。
+     *
+     * 此功能将快速转发服务器数据库以在其中包含最新的事务。
+     * 这与还原相同，但仅从事务日志读取，而不从快照还原。
+     *
      * @param dt the datatree to write transactions to.
      * @param sessions the sessions to be restored.
      * @param listener the playback listener to run on the
@@ -277,7 +279,8 @@ public class FileTxnSnapLog {
      */
     public long fastForwardFromEdits(DataTree dt, Map<Long, Integer> sessions,
                                      PlayBackListener listener) throws IOException {
-        // 依据dt最后的事务ID从txnLog中创建事务日志的迭代器
+
+        // 依据dt最后的事务ID从txnLog中创建事务日志的迭代器，这里读dt.lastProcessedZxid+1号的事务日志
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
         // 目前快照中最大的zxid
         long highestZxid = dt.lastProcessedZxid;
@@ -307,7 +310,7 @@ public class FileTxnSnapLog {
                 }
                 // 执行回调函数
                 // 每当有一个事务被应用到内存数据库中，ZooKeeper同时会回调PlayBackListener监听器，
-                // 将这一事务操作记录转换成Proposal，保存到ZKDatabase.committedLog中，以便Follower进行快速同步。
+                // TODO：将这一事务操作记录转换成Proposal，保存到ZKDatabase.committedLog中，以便Follower进行快速同步。
                 listener.onTxnLoaded(hdr, itr.getTxn());
                 if (!itr.next())
                     break;
