@@ -24,6 +24,7 @@ import org.apache.zookeeper.jmx.ZKMBeanInfo;
 
 /**
  * Leader election MBean interface implementation
+ * 领导者选举MBean接口实现
  */
 public class LeaderElectionBean implements LeaderElectionMXBean, ZKMBeanInfo {
     private final Date startTime = new Date();

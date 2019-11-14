@@ -774,7 +774,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     // 默认状态就是LOOKING
     private ServerState state = ServerState.LOOKING;
     
-    private boolean reconfigFlag = false; // indicates that a reconfig just committed
+    private boolean reconfigFlag = false; // indicates that a reconfig just committed 指示刚提交的重新配置
 
     public synchronized void setPeerState(ServerState newState){
         state=newState;
@@ -865,6 +865,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     private int electionType;
 
+    // TODO: 选举实现类
     Election electionAlg;
 
     ServerCnxnFactory cnxnFactory;
@@ -977,7 +978,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     private void loadDataBase() {
         try {
-            // 初始化ZK的dataTree并把
+            // TODO: 初始化ZK的dataTree
             zkDb.loadDataBase();
 
             // load the epochs
@@ -989,7 +990,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             // 同时会从磁盘的currentEpoch和acceptedEpoch文件中对去出上次记录的最新的epoch值，进行校验。
             long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
-                // 读取当前的 Epoch 时代
+                // 从currentEpoch文件中读取存储的 currentEpoch 时代
                 currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
             	// pick a reasonable epoch number
@@ -999,12 +1000,16 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             	LOG.info(CURRENT_EPOCH_FILENAME
             	        + " not found! Creating with a reasonable default of {}. This should only happen when you are upgrading your installation",
             	        currentEpoch);
+            	// 写入文件
             	writeLongToFile(CURRENT_EPOCH_FILENAME, currentEpoch);
             }
+            //直接抛错
             if (epochOfZxid > currentEpoch) {
                 throw new IOException("The current epoch当前的时代 , " + ZxidUtils.zxidToString(currentEpoch) + ", is older than the last zxid, " + lastProcessedZxid);
             }
+
             try {
+                // 从acceptedEpoch文件中读取存储的 acceptedEpoch 时代
                 acceptedEpoch = readLongFromFile(ACCEPTED_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
             	// pick a reasonable epoch number
@@ -1252,6 +1257,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             for(QuorumServer s: values){
                 ZKMBeanInfo p;
                 if (getId() == s.id) {
+                    // 如果是当前服务的QuorumServer
                     p = jmxLocalPeerBean = new LocalPeerBean(this);
                     try {
                         MBeanRegistry.getInstance().register(p, jmxQuorumBean);
@@ -1292,8 +1298,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                         LOG.info("Attempting to start ReadOnlyZooKeeperServer试图启动ReadOnlyZooKeeperServer");
 
                         // Create read-only server but don't start it immediately
-                        final ReadOnlyZooKeeperServer roZk =
-                            new ReadOnlyZooKeeperServer(logFactory, this, this.zkDb);
+                        final ReadOnlyZooKeeperServer roZk = new ReadOnlyZooKeeperServer(logFactory, this, this.zkDb);
     
                         // Instead of starting roZk immediately, wait some grace period before we decide we're partitioned.
                         // 不要立即启动roZk，在我们决定分区之前等待一段宽限期。
@@ -1331,6 +1336,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                             setPeerState(ServerState.LOOKING);
                         } finally {
                             // If the thread is in the the grace period, interrupt to come out of waiting.
+                            // 如果线程处于宽限期，请中断以退出等待状态。
                             roZkMgr.interrupt();
                             roZk.shutdown();
                         }
@@ -1498,8 +1504,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     public synchronized Set<Long> getCurrentAndNextConfigVoters() {
-        Set<Long> voterIds = new HashSet<Long>(getQuorumVerifier()
-                .getVotingMembers().keySet());
+        // 获取参与投票的ID
+        Set<Long> voterIds = new HashSet<Long>(getQuorumVerifier().getVotingMembers().keySet());
         if (getLastSeenQuorumVerifier() != null) {
             voterIds.addAll(getLastSeenQuorumVerifier().getVotingMembers()
                     .keySet());

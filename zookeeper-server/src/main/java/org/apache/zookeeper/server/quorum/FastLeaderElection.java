@@ -68,6 +68,7 @@ public class FastLeaderElection implements Election {
      * Determine how much time a process has to wait
      * once it believes that it has reached the end of
      * leader election.
+     * 确定一旦确定某个过程已达到领导人选举的结束，则必须等待多少时间。
      */
      // 完成Leader选举之后需要等待时长
     final static int finalizeWait = 200;
@@ -84,6 +85,7 @@ public class FastLeaderElection implements Election {
     /**
      * Lower bound for notification check. The observer don't need to use
      * the same lower bound as participant members
+     * 通知检查的下限。观察者不需要使用与参与者成员相同的下限
      */
     private static int minNotificationInterval = finalizeWait;
 
@@ -625,11 +627,12 @@ public class FastLeaderElection implements Election {
     Messenger messenger;
     // 逻辑时钟
     AtomicLong logicalclock = new AtomicLong(); /* Election instance */
-    // 推选的leader的id
+
+    // TODO: 推选的leader的id
     long proposedLeader;
-    // 推选的leader的zxid
+    // TODO: 推选的leader的zxid
     long proposedZxid;
-    // 推选的leader的选举周期
+    // TODO: 推选的leader的选举周期
     long proposedEpoch;
 
     /**
@@ -801,8 +804,6 @@ public class FastLeaderElection implements Election {
      * Check if a pair (server id, zxid) succeeds our
      * current vote.
      *
-     * @param id    Server identifier
-     * @param zxid  Last zxid observed by the issuer of this vote
      */
     // 该函数将接收的投票与自身投票进行PK，查看是否消息中包含的服务器id是否更优，其按照epoch、zxid、id的优先级进行PK
     protected boolean totalOrderPredicate(long newId, long newZxid, long newEpoch, long curId, long curZxid, long curEpoch) {
@@ -991,13 +992,13 @@ public class FastLeaderElection implements Election {
     public Vote lookForLeader() throws InterruptedException {
         try {
             self.jmxLeaderElectionBean = new LeaderElectionBean();
-            MBeanRegistry.getInstance().register(
-                    self.jmxLeaderElectionBean, self.jmxLocalPeerBean);
+            MBeanRegistry.getInstance().register(self.jmxLeaderElectionBean, self.jmxLocalPeerBean);
         } catch (Exception e) {
             LOG.warn("Failed to register with JMX", e);
             self.jmxLeaderElectionBean = null;
         }
         if (self.start_fle == 0) {
+            // 初始化选举开始时间
            self.start_fle = Time.currentElapsedTime();
         }
         try {
@@ -1012,14 +1013,14 @@ public class FastLeaderElection implements Election {
                 // TODO：逻辑时钟加一
                 //logicalclock代表该当前机器的逻辑时钟（初始为0），每次进行一次leader选举，就会加一
                 logicalclock.incrementAndGet();
-                //初始化选票，投给自己，
+                // TODO: 初始化选票，投给自己，
                 // getInitLastLoggedZxid得到的是该服务器已经处理的事务的最大zxid
                 // getPeerEpoch得到的是该服务器的选举轮次
                 updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());
             }
 
-            LOG.info("New election. My id =  " + self.getId() +
-                    ", proposed zxid=0x" + Long.toHexString(proposedZxid));
+            LOG.info("New election. My id =  " + self.getId() + ", proposed zxid=0x" + Long.toHexString(proposedZxid));
+
             //初始化选票后发给所有服务器
             sendNotifications();
 
@@ -1030,15 +1031,14 @@ public class FastLeaderElection implements Election {
              * 在我们找到领导者之前我们交换通知的循环
              */
 
-            while ((self.getPeerState() == ServerState.LOOKING) &&
-                    (!stop)){
+            while ((self.getPeerState() == ServerState.LOOKING) && (!stop)){
                 /*
                  * 从 recvqueue获得来自所有机器的投票
                  * Remove next notification from queue, times out after 2 times
                  * the termination time
                  */
-                Notification n = recvqueue.poll(notTimeout,
-                        TimeUnit.MILLISECONDS);
+                Notification n = recvqueue.poll(notTimeout, TimeUnit.MILLISECONDS);
+                System.out.println(notTimeout+"---"+n.leader+"----"+n.sid);
 
                 /*
                  * Sends more notifications if haven't received enough.
@@ -1057,13 +1057,12 @@ public class FastLeaderElection implements Election {
                     /*
                      * Exponential backoff
                      */
-                    //修改超时参数...
+                    // TODO: 修改超时参数，每次增长2倍，最大不超过maxNotificationInterval
                     int tmpTimeOut = notTimeout*2;
-                    notTimeout = (tmpTimeOut < maxNotificationInterval?
-                            tmpTimeOut : maxNotificationInterval);
+                    notTimeout = (tmpTimeOut < maxNotificationInterval? tmpTimeOut : maxNotificationInterval);
                     LOG.info("Notification time out: " + notTimeout);
                 }else if (validVoter(n.sid) && validVoter(n.leader)) {
-                    //否则处理选票
+                    //处理选票
                     /*
                      * Only proceed if the vote comes from a replica in the current or next
                      * voting view for a replica in the current or next voting view.
@@ -1254,7 +1253,7 @@ public class FastLeaderElection implements Election {
     /**
      * Check if a given sid is represented in either the current or
      * the next voting view
-     * 检查给定的sid是否在当前或下一个投票视图中表示
+     * TODO: 检查给定的sid是否在C参与选举的ID集合中
      *
      * @param sid     Server identifier
      * @return boolean
