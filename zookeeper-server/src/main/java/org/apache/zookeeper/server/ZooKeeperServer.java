@@ -370,11 +370,15 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
          * and avoid the penalty of loading it a second time. Not
          * reloading it is particularly important for applications
          * that host a large database.
+         * 当新领导者开始执行Leader＃lead时，它将调用此方法。但是，数据库已在运行领导者选举之前进行了初始化，以便服务器可以为其初始投票选择其zxid。
+         * 它通过调用QuorumPeer＃getLastLoggedZxid来实现。
+         * 因此，我们不需要再次初始化它，并且避免了再次加载它的麻烦。不重新加载它对于承载大型数据库的应用程序尤为重要。
          *
          * The following if block checks whether the database has
          * been initialized or not. Note that this method is
          * invoked by at least one other method:
          * ZooKeeperServer#startdata.
+         * 以下if块检查数据库是否已初始化。请注意，此方法由至少一个其他方法调用：ZooKeeperServer＃startdata。
          *
          * See ZOOKEEPER-1642 for more detail.
          */
@@ -400,6 +404,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
 
         // Make a clean snapshot
+        // 标记干净的快照
         takeSnapshot();
     }
 

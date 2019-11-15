@@ -502,7 +502,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * This method is main function that is called to lead
-       这种方法是被称为引导的主要功能
+       TODO: 这种方法是被称为引导的主要功能 -- 入口方法
      * @throws IOException
      * @throws InterruptedException
      */
@@ -521,12 +521,12 @@ public class Leader implements LearnerMaster {
         try {
             self.tick.set(0);
             zk.loadData();
-
+            // 状态摘要
             leaderStateSummary = new StateSummary(self.getCurrentEpoch(), zk.getLastProcessedZxid());
 
             // Start thread that waits for connection requests from
             // new followers.
-            // 等待learner的连接
+            // 启动LearnerCnxAcceptor，这个线程在等待learner的连接
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();
 
@@ -538,8 +538,7 @@ public class Leader implements LearnerMaster {
                 lastProposed = zk.getZxid();
             }
 
-            newLeaderProposal.packet = new QuorumPacket(NEWLEADER, zk.getZxid(),
-                   null, null);
+            newLeaderProposal.packet = new QuorumPacket(NEWLEADER, zk.getZxid(), null, null);
 
 
             if ((newLeaderProposal.packet.getZxid() & 0xffffffffL) != 0) {

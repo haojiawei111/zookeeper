@@ -161,6 +161,7 @@ public class QuorumCnxManager {
     // 每个远程节点都会定义一个消息发型队列
     // 消息发送队列按SID分组，分别为集群中每台机器分配一个单独队列
     final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
+
     // 每个远程节点最后发送的消息  为每个SID保留最近发送过的一个消息
     final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
     /*
@@ -487,8 +488,7 @@ public class QuorumCnxManager {
                 vsw.finish();
 
             senderWorkerMap.put(sid, sw);
-            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(
-                        SEND_CAPACITY));
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
 
             sw.start();
             rw.start();
@@ -665,8 +665,8 @@ public class QuorumCnxManager {
          * If sending message to myself, then simply enqueue it (loopback).
          */
         // 前面发送投票信息的时候是向集群所有节点发送，所以当然也包括自己这个节点，所以QuorumCnxManager的发送逻辑里会判断，
-        // 如果这个要发送的投票信息是发送给自己的，则不发送了，直接进入接收队列。
-        //如果接受者是自己，直接放置到接收队列
+        // TODO: 如果这个要发送的投票信息是发送给自己的，则不发送了，直接进入接收队列。
+        // TODO: 如果提议是自己，直接放置到接收队列
         if (this.mySid == sid) {
              b.position(0);
              addToRecvQueue(new Message(b.duplicate(), sid));
@@ -679,17 +679,17 @@ public class QuorumCnxManager {
               * Start a new connection if doesn't have one already.
               */
             //这个SEND_CAPACITY的大小是1，所以如果之前已经有一个还在等待发送，则会把之前的一个删除掉，发送新的
-             ArrayBlockingQueue<ByteBuffer> bq = new ArrayBlockingQueue<ByteBuffer>(
-                SEND_CAPACITY);
+             ArrayBlockingQueue<ByteBuffer> bq = new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY);
+             // 如果传入key对应的value已经存在，就返回存在的value，不进行替换
              ArrayBlockingQueue<ByteBuffer> oldq = queueSendMap.putIfAbsent(sid, bq);
              if (oldq != null) {
                  addToSendQueue(oldq, b);
              } else {
+                 // 发送刚放进去的提议
                  addToSendQueue(bq, b);
              }
             //连接申请 这里是真正的发送逻辑了
              connectOne(sid);
-
         }
     }
 
@@ -762,6 +762,7 @@ public class QuorumCnxManager {
      */
     synchronized void connectOne(long sid){
         if (senderWorkerMap.get(sid) != null) {
+            // 这个以及连接建立好了
             LOG.debug("There is a connection already for server " + sid);
             return;
         }
@@ -795,13 +796,12 @@ public class QuorumCnxManager {
 
     /**
      * Try to establish a connection with each server if one doesn't exist.
-     * 尝试与每个服务器建立连接（如果不存在）。
+     * TODO: 尝试与每个服务器建立连接（如果不存在）。
      */
 
     public void connectAll(){
         long sid;
-        for(Enumeration<Long> en = queueSendMap.keys();
-            en.hasMoreElements();){
+        for(Enumeration<Long> en = queueSendMap.keys(); en.hasMoreElements();){
             sid = en.nextElement();
             connectOne(sid);
         }
@@ -810,11 +810,13 @@ public class QuorumCnxManager {
 
     /**
      * Check if all queues are empty, indicating that all messages have been delivered.
+     * 检查所有队列是否为空，不为空表示所有邮件均已传递。
      */
     boolean haveDelivered() {
         for (ArrayBlockingQueue<ByteBuffer> queue : queueSendMap.values()) {
             LOG.debug("Queue size: " + queue.size());
             if (queue.size() == 0) {
+                // 为空，重新投递选票
                 return true;
             }
         }
@@ -1313,10 +1315,10 @@ public class QuorumCnxManager {
      * @param buffer
      *          Reference to the buffer to be inserted in the queue
      */
-    private void addToSendQueue(ArrayBlockingQueue<ByteBuffer> queue,
-          ByteBuffer buffer) {
+    private void addToSendQueue(ArrayBlockingQueue<ByteBuffer> queue, ByteBuffer buffer) {
         if (queue.remainingCapacity() == 0) {
             try {
+                // 如果queue剩余容量是0就删除数据
                 queue.remove();
             } catch (NoSuchElementException ne) {
                 // element could be removed by poll()
@@ -1325,6 +1327,7 @@ public class QuorumCnxManager {
             }
         }
         try {
+            // 添加数据到queue中
             queue.add(buffer);
         } catch (IllegalStateException ie) {
             // This should never happen

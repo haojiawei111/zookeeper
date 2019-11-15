@@ -967,7 +967,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             System.out.println(e);
         }
 
-        // 开始选举，这个只是设置electionAlg和currentVote
+        // 开始选举，这个只是设置electionAlg和currentVote，没有真正开始选举
         startLeaderElection();
 
         // 开始jvm监控，主要监控jvm导致是系统停顿
@@ -1143,18 +1143,42 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     public Leader leader;
     public Observer observer;
 
+    /**
+     * TODO: 创建Follower，同时创建FollowerZooKeeperServer
+     * @param logFactory
+     * @return
+     * @throws IOException
+     */
     protected Follower makeFollower(FileTxnSnapLog logFactory) throws IOException {
         return new Follower(this, new FollowerZooKeeperServer(logFactory, this, this.zkDb));
     }
 
+    /**
+     * TODO: 创建Leader，同时创建LeaderZooKeeperServer
+     * @param logFactory
+     * @return
+     * @throws IOException
+     * @throws X509Exception
+     */
     protected Leader makeLeader(FileTxnSnapLog logFactory) throws IOException, X509Exception {
         return new Leader(this, new LeaderZooKeeperServer(logFactory, this, this.zkDb));
     }
 
+    /**
+     * TODO: 创建Leader，同时创建ObserverZooKeeperServer
+     * @param logFactory
+     * @return
+     * @throws IOException
+     */
     protected Observer makeObserver(FileTxnSnapLog logFactory) throws IOException {
         return new Observer(this, new ObserverZooKeeperServer(logFactory, this, this.zkDb));
     }
 
+    /**
+     *
+     * @param electionAlgorithm
+     * @return 返回实际使用的选举类
+     */
     @SuppressWarnings("deprecation")
     protected Election createElectionAlgorithm(int electionAlgorithm){
         Election le=null;
@@ -1178,7 +1202,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             QuorumCnxManager oldQcm = qcmRef.getAndSet(qcm);
             if (oldQcm != null) {
                 // Clobbering已经设置了QuorumCnxManager（重启领导者选举？）
-                LOG.warn("Clobbering already-set QuorumCnxManager (restarting leader election?)");
+                LOG.warn("Clobbering already-set QuorumCnxManager (restarting leader election?)破坏已经设置的QuorumCnxManager（重新启动领导者选举？)");
                 oldQcm.halt();
             }
             QuorumCnxManager.Listener listener = qcm.listener;
@@ -1349,6 +1373,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                                }
                                //调用选举算法开始选举了
                             setCurrentVote(makeLEStrategy().lookForLeader());
+                            // TODO: 选举结束，这个时候ServerState已经确定，此服务是什么类型在下次循环的时候就会进入正确逻辑
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception", e);
                             setPeerState(ServerState.LOOKING);
@@ -1358,6 +1383,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 case OBSERVING:
                     try {
                         LOG.info("OBSERVING");
+                        // 创建Observer
                         setObserver(makeObserver(logFactory));//设置自己为observing
                         observer.observeLeader();// 观察Leader
                     } catch (Exception e) {
@@ -1378,6 +1404,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 case FOLLOWING:
                     try {
                        LOG.info("FOLLOWING");
+                        // 创建Follower
                         setFollower(makeFollower(logFactory));//设置自己为following
                         follower.followLeader();// following leading
                     } catch (Exception e) {
@@ -1391,6 +1418,7 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
                 case LEADING:
                     LOG.info("LEADING");
                     try {
+                        // 创建Leader
                         setLeader(makeLeader(logFactory));//设置自己为leading
                         leader.lead();
                         setLeader(null);

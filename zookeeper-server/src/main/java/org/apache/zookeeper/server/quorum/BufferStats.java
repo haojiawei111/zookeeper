@@ -20,6 +20,7 @@ package org.apache.zookeeper.server.quorum;
 
 /**
  * Provides live statistics about Jute buffer usage in term of proposal and client request size.
+ * 根据提议和客户端请求大小提供有关黄麻缓冲区使用情况的实时统计信息。
  */
 public class BufferStats {
     public static final int INIT_VALUE = -1;
