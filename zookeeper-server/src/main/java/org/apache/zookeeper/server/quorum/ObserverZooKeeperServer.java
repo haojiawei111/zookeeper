@@ -119,6 +119,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
          * 但是，这可能会降低性能，因为它必须写入磁盘并执行定期快照，这可能会使内存需求翻倍
          */
         if (syncRequestProcessorEnabled) {
+            // 开启同步处理器，这个可以关闭
             syncProcessor = new SyncRequestProcessor(this, null);
             syncProcessor.start();
         }

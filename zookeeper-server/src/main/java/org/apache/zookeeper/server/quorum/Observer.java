@@ -102,10 +102,13 @@ public class Observer extends Learner{
  
                 syncWithLeader(newLeaderZxid);
                 QuorumPacket qp = new QuorumPacket();
+
+                // 在不同的读取并处理leader发过来的数据
                 while (this.isRunning() && nextLearnerMaster.get() == null) {
                     readPacket(qp);
                     processPacket(qp);
                 }
+
             } catch (Exception e) {
                 LOG.warn("Exception when observing the leader", e);
                 try {
@@ -143,6 +146,7 @@ public class Observer extends Learner{
 
     /**
      * Controls the response of an observer to the receipt of a quorumpacket
+     * 控制观察者对仲裁包接收的响应
      * @param qp
      * @throws Exception 
      */

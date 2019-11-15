@@ -112,10 +112,12 @@ public class Follower extends Learner{
                 }
                 // create a reusable packet to reduce gc impact
                 QuorumPacket qp = new QuorumPacket();
+                // 在不同的读取并处理leader发过来的数据
                 while (this.isRunning()) {
                     readPacket(qp);
                     processPacket(qp);
                 }
+
             } catch (Exception e) {
                 LOG.warn("Exception when following the leader", e);
                 try {
@@ -137,6 +139,7 @@ public class Follower extends Learner{
 
     /**
      * Examine the packet received in qp and dispatch based on its contents.
+     * 检查在qp中收到的数据包并根据其内容进行分发。
      * @param qp
      * @throws IOException
      */

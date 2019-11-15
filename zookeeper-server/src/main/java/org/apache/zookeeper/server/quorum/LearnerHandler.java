@@ -251,8 +251,7 @@ public class LearnerHandler extends ZooKeeperThread {
     }
 
     /**
-     * 消费 不断消费queuedPackets发送队列
-     * 遇到proposalOfDeath就break，遇到Proposal则进行对应的记录
+     * TODO: 此方法将使用线程发送添加到queuedPackets列表的数据包
      *
      * This method will use the thread to send packets added to the
      * queuedPackets list
@@ -526,6 +525,7 @@ public class LearnerHandler extends ZooKeeperThread {
             bufferedOutput.flush();
 
             // Start thread that blast packets in the queue to learner
+            // TODO: 启动线程将队列中的数据包发送给给学习者
             startSendingPackets();
 
             /*
@@ -653,14 +653,14 @@ public class LearnerHandler extends ZooKeeperThread {
 
     /**
      * Start thread that will forward any packet in the queue to the follower
+     * TODO: 启动线程将把队列中的任何数据包转发给跟随者
      */
     protected void startSendingPackets() {
         if (!sendingThreadStarted) {
             // Start sending packets
             new Thread() {
                 public void run() {
-                    Thread.currentThread().setName(
-                            "Sender-" + sock.getRemoteSocketAddress());
+                    Thread.currentThread().setName("Sender-" + sock.getRemoteSocketAddress());
                     try {
                         sendPackets();
                     } catch (InterruptedException e) {

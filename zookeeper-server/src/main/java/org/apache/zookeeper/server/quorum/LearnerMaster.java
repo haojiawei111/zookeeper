@@ -28,6 +28,7 @@ import java.net.SocketAddress;
 
 /**
  * interface for keeping Observers in sync
+ * 保持观察者同步的界面
  */
 public interface LearnerMaster {
     /**

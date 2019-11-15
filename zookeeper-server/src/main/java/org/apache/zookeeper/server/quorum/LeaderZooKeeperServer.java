@@ -79,7 +79,7 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     //
     //CommitRequestProcessor 会将收到足够多的确认消息的提议进行提交. 实际上,确认消息是由Leader类处理的(Leader.processAck()方法),这个方法会将提交的请求加入到CommitRequestProcessor类中的一个队列中.这个队列会由请求处理器线程进行处理.
     //
-    //FinalRequestProcessor处理器,作用与独立服务器一样,不过在它之前还有一个简单的请求处理器,这个处理器会从提议列表中删除那些待接受的提议,这个处理器的名字叫ToBeAppliedRequestProcessor,待接受请求列表包括那些已经被仲裁法定人数所确认的请求,并等待执行. 群首使用这个列表与追随者之间进行同步,并将收到确认消息的请求加入到这个列表中. 之后 ToBeAppliedRequestProcessor 处理器就会在 FinalRequestProcessor处理器执行后删除这个列表中的元素;
+    //FinalRequestProcessor 处理器,作用与独立服务器一样,不过在它之前还有一个简单的请求处理器,这个处理器会从提议列表中删除那些待接受的提议,这个处理器的名字叫ToBeAppliedRequestProcessor,待接受请求列表包括那些已经被仲裁法定人数所确认的请求,并等待执行. 群首使用这个列表与追随者之间进行同步,并将收到确认消息的请求加入到这个列表中. 之后 ToBeAppliedRequestProcessor 处理器就会在 FinalRequestProcessor处理器执行后删除这个列表中的元素;
 
     @Override
     protected void setupRequestProcessors() {

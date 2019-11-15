@@ -280,6 +280,7 @@ public class Leader implements LearnerMaster {
                 }
             }
             ss.setReuseAddress(true);
+            System.out.println(self.getQuorumAddress());
             if (!self.getQuorumListenOnAllIPs()) {
                 ss.bind(self.getQuorumAddress());
             }
@@ -433,10 +434,8 @@ public class Leader implements LearnerMaster {
                         s.setSoTimeout(self.tickTime * self.initLimit);
                         s.setTcpNoDelay(nodelay);
 
-                        BufferedInputStream is = new BufferedInputStream(
-                                s.getInputStream());
-                        LearnerHandler fh = new LearnerHandler(s, is,
-                                Leader.this);
+                        BufferedInputStream is = new BufferedInputStream(s.getInputStream());
+                        LearnerHandler fh = new LearnerHandler(s, is, Leader.this);
                         fh.start();
                     } catch (SocketException e) {
                         error = true;
@@ -708,6 +707,7 @@ public class Leader implements LearnerMaster {
                     f.ping();
                 }
             }
+
             if (shutdownMessage != null) {
                 shutdown(shutdownMessage);
                 // leader goes in looking state
