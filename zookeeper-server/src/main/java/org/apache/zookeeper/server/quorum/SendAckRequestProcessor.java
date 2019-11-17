@@ -36,10 +36,10 @@ public class SendAckRequestProcessor implements RequestProcessor, Flushable {
     SendAckRequestProcessor(Learner peer) {
         this.learner = peer;
     }
-
+    // 向Leader发送ACK
     public void processRequest(Request si) {
-        //如果Request类型是异步消息
         if(si.type != OpCode.sync){
+            // 如果Request类型是异步消息
             QuorumPacket qp = new QuorumPacket(Leader.ACK, si.getHdr().getZxid(), null, null);
             try {
                 learner.writePacket(qp, false);
@@ -55,6 +55,7 @@ public class SendAckRequestProcessor implements RequestProcessor, Flushable {
                 }
             }
         }
+        // 忽略同步请求
     }
 
     public void flush() throws IOException {

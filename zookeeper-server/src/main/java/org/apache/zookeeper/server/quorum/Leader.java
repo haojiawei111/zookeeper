@@ -485,6 +485,7 @@ public class Leader implements LearnerMaster {
 
     // when a reconfig occurs where the leader is removed or becomes an observer,
    // it does not commit ops after committing the reconfig
+    // 当重新配置发生在领导者被删除或成为观察者的位置时，在提交重新配置后它不会提交操作
     boolean allowedToCommit = true;
 
     /**
@@ -811,7 +812,7 @@ public class Leader implements LearnerMaster {
     }
 
     /**
-     * @return True if committed, otherwise false.
+     * @return True if committed, otherwise false.如果已提交，则为true，否则为false。
      **/
     synchronized public boolean tryToCommit(Proposal p, long zxid, SocketAddress followerAddr) {
        // make sure that ops are committed in order. With reconfigurations it is now possible
@@ -841,6 +842,7 @@ public class Leader implements LearnerMaster {
         outstandingProposals.remove(zxid);
 
         if (p.request != null) {
+            // TODO: 添加到toBeApplied队列中
              toBeApplied.add(p);
         }
 
@@ -871,9 +873,11 @@ public class Leader implements LearnerMaster {
             informAndActivate(p, designatedLeader);
             //turnOffFollowers();
         } else {
+            // TODO: 提交事务
             commit(zxid);
             inform(p);
         }
+        // TODO: 提交事务
         zk.commitProcessor.commit(p.request);
         if(pendingSyncs.containsKey(zxid)){
             for(LearnerSyncRequest r: pendingSyncs.remove(zxid)) {
@@ -887,6 +891,7 @@ public class Leader implements LearnerMaster {
     /**
      * Keep a count of acks that are received by the leader for a particular
      * proposal
+     * 保留领导者收到的特定建议的数量
      *
      * @param zxid, the zxid of the proposal sent out
      * @param sid, the id of the server that sent the ack
@@ -911,6 +916,8 @@ public class Leader implements LearnerMaster {
              * We no longer process NEWLEADER ack with this method. However,
              * the learner sends an ack back to the leader after it gets
              * UPTODATE, so we just ignore the message.
+             * 我们不再使用这种方法处理NEWLEADER ack。
+             * 但是，learner获得UPTODATE后会向领导发送一个确认，因此我们只是忽略该消息。
              */
             return;
         }
@@ -930,6 +937,7 @@ public class Leader implements LearnerMaster {
             // The proposal has already been committed
             return;
         }
+        // 根据事务ID取出提议
         Proposal p = outstandingProposals.get(zxid);
         if (p == null) {
             LOG.warn("Trying to commit future proposal: zxid 0x{} from {}",
@@ -955,11 +963,12 @@ public class Leader implements LearnerMaster {
         // ops may already have enough acks and can be committed, which is what this code does.
 
         if (hasCommitted && p.request!=null && p.request.getHdr().getType() == OpCode.reconfig){
-               long curZxid = zxid;
-           while (allowedToCommit && hasCommitted && p!=null){
+            long curZxid = zxid;
+            while (allowedToCommit && hasCommitted && p!=null){
                curZxid++;
                p = outstandingProposals.get(curZxid);
-               if (p !=null) hasCommitted = tryToCommit(p, curZxid, null);
+               if (p !=null)
+                   hasCommitted = tryToCommit(p, curZxid, null);
            }
         }
     }
@@ -1154,6 +1163,7 @@ public class Leader implements LearnerMaster {
 
         byte[] data = SerializeUtils.serializeRequest(request);
         proposalStats.setLastBufferSize(data.length);
+        // 创建提案
         QuorumPacket pp = new QuorumPacket(Leader.PROPOSAL, request.zxid, data, null);
 
         Proposal p = new Proposal();
@@ -1174,7 +1184,7 @@ public class Leader implements LearnerMaster {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Proposing:: " + request);
             }
-
+            // 把提议放到outstandingProposals中存储
             lastProposed = p.packet.getZxid();
             outstandingProposals.put(lastProposed, p);
             sendPacket(pp);
@@ -1189,6 +1199,7 @@ public class Leader implements LearnerMaster {
 
     /**
      * Process sync requests
+     * 处理同步请求
      *
      * @param r the request
      */

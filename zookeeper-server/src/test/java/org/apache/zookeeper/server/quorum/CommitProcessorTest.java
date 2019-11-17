@@ -66,10 +66,20 @@ import org.slf4j.LoggerFactory;
  *
  * 3. The pipeline needs to be drained before a write request can enter.
  * 4. No in-flight write requests while processing a read request.
+ * 不管CommitProcessor的特定实现如何，以下内容都是不变的，并经过测试：
+ *
+ * 1.对于每个会话，将处理请求，客户端按顺序查看其响应。
+ * 2.在所有会话中以zxid顺序处理写请求。
+ *
+ * 此处也测试了以下内容，但特定于此特定实现。潜在的问题是，在读取数据时可以重置watches。对于在不同节点上的两个不同会话上的读/写，
+ * 或者对于未设置监视的读，读可以相对于写以任何顺序发生。但是，对于在一个会话中进行的读取操作会重置由另一会话中的写入操作触发的手表，我们需要确保不存在竞争条件
+ *
+ * 3.在进入写入请求之前，需要先清空管道。
+ * 4.处理读取请求时，没有正在进行中的写入请求。
+ *
  */
 public class CommitProcessorTest extends ZKTestCase {
-    protected static final Logger LOG =
-        LoggerFactory.getLogger(CommitProcessorTest.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(CommitProcessorTest.class);
 
     // The amount of ms each test case should run
     static final int TEST_RUN_TIME_IN_MS = 5000;
@@ -79,12 +89,10 @@ public class CommitProcessorTest extends ZKTestCase {
     boolean stopped;
     TestZooKeeperServer zks;
     File tmpDir;
-    ArrayList<TestClientThread> testClients =
-            new ArrayList<TestClientThread>();
+    ArrayList<TestClientThread> testClients = new ArrayList<TestClientThread>();
     CommitProcessor commitProcessor;
 
-    public void setUp(int numCommitThreads, int numClientThreads, int writePercent)
-            throws Exception {
+    public void setUp(int numCommitThreads, int numClientThreads, int writePercent) throws Exception {
         stopped = false;
         System.setProperty(
             CommitProcessor.ZOOKEEPER_COMMIT_PROC_NUM_WORKER_THREADS,

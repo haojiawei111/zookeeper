@@ -89,7 +89,7 @@ public class Learner {
     public Socket getSocket() {
         return sock;
     }
-    
+    // 这里是和leader建立的连接
     protected InputArchive leaderIs;//输入
     protected OutputArchive leaderOs;  //输出
     /** the protocol version of the leader */
@@ -159,6 +159,7 @@ public class Learner {
      * @throws IOException
      */
     void writePacket(QuorumPacket pp, boolean flush) throws IOException {
+        // 这里写出用了同步块
         synchronized (leaderOs) {
             if (pp != null) {
                 // 向leader转发一个请求
