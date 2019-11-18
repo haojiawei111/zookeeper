@@ -224,7 +224,7 @@ public class Learner {
     
     /**
      * Returns the address of the node we think is the leader.
-     * 返回我们认为是领导者的节点的地址。
+     * TODO: 返回我们认为是领导者的节点的地址。这是Follower查找Leader的逻辑，和Observer不一样
      *
      * 通过currentVote的sid遍历所有集群机器，看哪个sid一样，就是那台机器
      */
@@ -432,7 +432,7 @@ public class Learner {
      * Finally, synchronize our history with the Leader (if Follower)
      * or the LearnerMaster (if Observer).
      *
-     * 启动时learner先和leader进行数据同步
+     * TODO: 启动时learner先和leader进行数据同步
      *
      * @param newLeaderZxid
      * @throws IOException

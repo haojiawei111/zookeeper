@@ -37,6 +37,7 @@ public class SyncedLearnerTracker {
         boolean change = false;
         for (QuorumVerifierAcksetPair qvAckset : qvAcksetPairs) {
             if (qvAckset.getQuorumVerifier().getVotingMembers().containsKey(sid)) {
+                // 添加已经返回ACK的服务器ID
                 qvAckset.getAckset().add(sid);
                 change = true;
             }

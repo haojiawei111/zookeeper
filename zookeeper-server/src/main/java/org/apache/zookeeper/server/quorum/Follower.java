@@ -85,6 +85,7 @@ public class Follower extends Learner{
                 connectToLeader(leaderServer.addr, leaderServer.hostname);
                 // 注册自己的信息
                 long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO);
+
                 if (self.isReconfigStateChange())
                    throw new Exception("learned about role change");
                 //check to see if the leader zxid is lower than ours
@@ -95,15 +96,18 @@ public class Follower extends Learner{
                             + " is less than our accepted epoch " + ZxidUtils.zxidToString(self.getAcceptedEpoch()));
                     throw new IOException("Error: Epoch of leader is lower");
                 }
+
                 long startTime = Time.currentElapsedTime();
                 try {
+                    // TODO: 和Leader同步数据
                     syncWithLeader(newEpochZxid);
                 } finally {
                     long syncTime = Time.currentElapsedTime() - startTime;
                     ServerMetrics.getMetrics().FOLLOWER_SYNC_TIME.add(syncTime);
                 }
+                // TODO: 是否开启ObserverMaster服务
                 if (self.getObserverMasterPort() > 0) {
-                    LOG.info("Starting ObserverMaster");
+                    LOG.info("Starting ObserverMaster 启动ObserverMaster");
 
                     om = new ObserverMaster(self, fzk, self.getObserverMasterPort());
                     om.start();

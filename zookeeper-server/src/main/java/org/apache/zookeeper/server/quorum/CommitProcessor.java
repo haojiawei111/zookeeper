@@ -531,6 +531,10 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
         }
     }
 
+    /**
+     * TODO: 提交事务
+     * @param request
+     */
     public void commit(Request request) {
         if (stopped || request == null) {
             return;
@@ -538,6 +542,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
         if (LOG.isDebugEnabled()) {
             LOG.debug("Committing request:: " + request);
         }
+        // 设置request.commitRecvTime事件
         request.commitRecvTime = Time.currentElapsedTime();
         ServerMetrics.getMetrics().COMMITS_QUEUED.add(1);
         committedRequests.add(request);

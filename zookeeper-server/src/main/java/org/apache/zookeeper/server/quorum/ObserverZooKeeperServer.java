@@ -79,10 +79,10 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     public void commitRequest(Request request) {     
         if (syncRequestProcessorEnabled) {// 同步处理器可用
             // Write to txnlog and take periodic snapshot
-            // 使用同步处理器处理请求
+            // TODO: 使用同步处理器处理请求
             syncProcessor.processRequest(request);
         }
-        // 提交请求
+        // TODO: 直接提交请求
         commitProcessor.commit(request);        
     }
     
@@ -127,6 +127,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
 
     /*
      * Process a sync request
+     * 处理同步请求
      */
     synchronized public void sync(){
         if(pendingSyncs.size() ==0){// 没有未完成的同步请求

@@ -96,10 +96,11 @@ public class Observer extends Learner{
             QuorumServer master = findLearnerMaster();
             try {
                 connectToLeader(master.addr, master.hostname);
+                // 注册自己
                 long newLeaderZxid = registerWithLeader(Leader.OBSERVERINFO);
                 if (self.isReconfigStateChange())
                    throw new Exception("learned about role change");
- 
+                // 和leader同步
                 syncWithLeader(newLeaderZxid);
                 QuorumPacket qp = new QuorumPacket();
 
@@ -132,9 +133,7 @@ public class Observer extends Learner{
             LOG.warn("requested next learner master {} is no longer valid", prescribedLearnerMaster);
             prescribedLearnerMaster = null;
         }
-        final QuorumPeer.QuorumServer master = (prescribedLearnerMaster == null) ?
-                self.findLearnerMaster(findLeader()) :
-                prescribedLearnerMaster;
+        final QuorumPeer.QuorumServer master = (prescribedLearnerMaster == null) ? self.findLearnerMaster(findLeader()) : prescribedLearnerMaster;
         currentLearnerMaster = master;
         if (master == null) {
             LOG.warn("No learner master found");
@@ -146,7 +145,7 @@ public class Observer extends Learner{
 
     /**
      * Controls the response of an observer to the receipt of a quorumpacket
-     * 控制观察者对仲裁包接收的响应
+     * TODO: 控制观察者对仲裁包接收的响应
      * @param qp
      * @throws Exception 
      */
@@ -155,10 +154,10 @@ public class Observer extends Learner{
         case Leader.PING:
             ping(qp);
             break;
-        case Leader.PROPOSAL:
+        case Leader.PROPOSAL://忽略提议
             LOG.warn("Ignoring proposal");
             break;
-        case Leader.COMMIT:
+        case Leader.COMMIT://忽略提交
             LOG.warn("Ignoring commit");
             break;
         case Leader.UPTODATE:
@@ -177,7 +176,7 @@ public class Observer extends Learner{
             ObserverZooKeeperServer obs = (ObserverZooKeeperServer)zk;
             obs.commitRequest(request);
             break;
-        case Leader.INFORMANDACTIVATE:            
+        case Leader.INFORMANDACTIVATE:
             hdr = new TxnHeader();
             
            // get new designated leader from (current) leader's message

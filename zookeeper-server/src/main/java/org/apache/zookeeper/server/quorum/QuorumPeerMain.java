@@ -197,8 +197,9 @@ public class QuorumPeerMain {
           quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout()); //maxSessionTimeout  默认3000 * 20
           quorumPeer.setInitLimit(config.getInitLimit()); //initLimit
           quorumPeer.setSyncLimit(config.getSyncLimit()); //syncLimit
-          // 观察者端口
+          // 观察者端口，Follower是否开启observerMaster服务，如果没开启observer就连接到leader，否则可以连接到Follower
           quorumPeer.setObserverMasterPort(config.getObserverMasterPort()); //observerMasterPort
+
           quorumPeer.setConfigFileName(config.getConfigFilename());  //配置文件路径
           quorumPeer.setClientPortListenBacklog(config.getClientPortListenBacklog()); //clientPortListenBacklog  默认-1
           // 创建ZKDatabase

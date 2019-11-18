@@ -60,6 +60,24 @@ import org.slf4j.LoggerFactory;
  * to be brought up to date.
  *
  * The logic is quite a bit simpler than the corresponding logic in Leader because it only hosts observers.
+ *
+ *
+ * 关注者用来主持观察员。通过推动使观察者与领先对等方保持同步的责任，可以减轻领导者流程的网络负载。
+ *
+ * 预计观察者将继续执行客户和请求的初始审核。观察者将请求发送给跟随者，观察者主机将其接收。
+ *
+ * ObserverMaster将请求的副本转发给集成的Leader，并将其插入到自己的请求处理器管道中，在该管道中可以将其与响应匹配。从领导者收到的所有提交都将转发给连接到ObserverMaster的每个学习者。
+ *
+ * 连接到关注者的新学习者将收到一个LearnerHandler对象，并成为其同步逻辑的参与者。
+ *
+ * 该逻辑比Leader中的相应逻辑要简单得多，因为它仅托管观察者。
+ *
+ *
+ * Observer对于寻找Leader的处理跟Follower略有不同，上文提到Follower在followLeader的时候会根据是否设置了ObserverMaster端口来决定是否启动ObserverMaster服务，
+ * 这里也是如果启用了ObserverMaster服务那么将会随机连接一个ObserverMaster服务而不是连接Leader，默认是不启用ObserverMaster服务的，因此默认会连接集群Leader
+ *
+ *
+ *
  */
 public class ObserverMaster implements LearnerMaster, Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(ObserverMaster.class);

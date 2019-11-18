@@ -82,6 +82,7 @@ public interface LearnerMaster {
 
     /**
      * wait for new leader to settle
+     * 等待新领导人安顿下来
      * @param sid id of learner
      * @param zxid zxid at learner
      * @throws InterruptedException
@@ -119,7 +120,7 @@ public interface LearnerMaster {
     int getTickOfInitialAckDeadline();
 
     /**
-     * decrement follower count
+     * decrement follower count减少follower人数
      * @return previous follower count
      */
     long getAndDecrementFollowerCounter();

@@ -110,8 +110,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
 
             // we do this in an attempt to ensure that not all of the servers
             // in the ensemble take a snapshot at the same time
-            // 我们这样做是为了确保并非整体中的所有服务器都同时拍摄快照
-            // 确保所有的服务器在同一时间不是使用的同一个快照
+            // 我们这样做是为了确保并非集合中的所有服务器都同时拍摄快照
             int randRoll = ThreadLocalRandom.current().nextInt(snapCount / 2, snapCount);
             while (true) {
                 // 从请求队列中拿到上个处理器下发的请求
@@ -119,7 +118,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 if (si == null) {
                     // 说明没有请求，刷新磁盘数据
                     flush();
-                    // 从请求队列中取出一个请求，若队列为空会阻塞
+                    // TODO: 从请求队列中取出一个请求，若队列为空会阻塞
                     si = queuedRequests.take();
                 }
 
@@ -128,8 +127,9 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                     break;
                 }
 
-                // track the number of records written to the log跟踪写入日志的记录数
-                if (zks.getZKDatabase().append(si)) {// 将请求添加至事务日志文件，只有事务性请求才会返回true
+                // track the number of records written to the log
+                // TODO: 跟踪写入日志的记录数
+                if (zks.getZKDatabase().append(si)) {// TODO: 将请求添加至事务日志文件，只有事务性请求才会返回true
                     // 写入一条日志，logCount加1
                     logCount++;
                     if (logCount > randRoll) { // 满足roll the log的条件
@@ -174,7 +174,8 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                     }
                     continue;// 跳过后续处理
                 }
-                // 请求添加到toFlush中
+
+                // TODO: 请求添加到toFlush中
                 toFlush.add(si);
                 if (toFlush.size() == FLUSH_SIZE) {
                     // toFlush的大小等于FLUSH_SIZE（1000）时才flush
@@ -193,7 +194,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
           return;
       }
       // commit ZKDatabase
-        // 这里不是提交事务日志（这名字起的真误导人），这是在flush事务日志文件
+        // TODO: 这里不是提交事务日志（这名字起的真误导人），这是在flush事务日志文件
       zks.getZKDatabase().commit();
 
       if (this.nextProcessor == null) {
@@ -201,7 +202,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
         this.toFlush.clear();
       } else {
           while (!this.toFlush.isEmpty()) {
-              // 从toFlush队列移除并取出全部的Request执行下一个处理程序
+              // TODO: 从toFlush队列移除并取出全部的Request执行下一个处理程序
               final Request i = this.toFlush.remove();
               this.nextProcessor.processRequest(i);
           }
