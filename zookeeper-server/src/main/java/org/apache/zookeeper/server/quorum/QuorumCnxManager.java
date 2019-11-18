@@ -666,7 +666,6 @@ public class QuorumCnxManager {
          */
         // 前面发送投票信息的时候是向集群所有节点发送，所以当然也包括自己这个节点，所以QuorumCnxManager的发送逻辑里会判断，
         // TODO: 如果这个要发送的投票信息是发送给自己的，则不发送了，直接进入接收队列。
-        // TODO: 如果提议是自己，直接放置到接收队列
         if (this.mySid == sid) {
              b.position(0);
              addToRecvQueue(new Message(b.duplicate(), sid));
@@ -1169,7 +1168,9 @@ public class QuorumCnxManager {
                  */
                 ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);//找到sid对应需要send的队列
                 if (bq == null || isSendQueueEmpty(bq)) {
-                   ByteBuffer b = lastMessageSent.get(sid);//如果没有什么发的，就把上一次发的再发一遍(重发能够正确处理)
+                    //TODO: 如果没有什么发的，就把上一次发的再发一遍(重发能够正确处理)
+                    System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" +sid);
+                   ByteBuffer b = lastMessageSent.get(sid);
                    if (b != null) {
                        LOG.debug("Attempting to send lastMessage to sid=" + sid);
                        send(b);
@@ -1195,7 +1196,9 @@ public class QuorumCnxManager {
                         }
 
                         if(b != null){
-                            lastMessageSent.put(sid, b);//更新最后一次发送的
+                            //更新最后一次发送的
+                            lastMessageSent.put(sid, b);
+                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!2"+sid);
                             send(b);//发送
                         }
                     } catch (InterruptedException e) {

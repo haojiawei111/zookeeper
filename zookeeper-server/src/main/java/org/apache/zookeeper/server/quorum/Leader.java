@@ -1364,15 +1364,16 @@ public class Leader implements LearnerMaster {
             if (!waitingForNewEpoch) {
                 return epoch;
             }
+
             if (lastAcceptedEpoch >= epoch) {
                 epoch = lastAcceptedEpoch+1;
             }
             if (isParticipant(sid)) {
                 connectingFollowers.add(sid);
             }
+
             QuorumVerifier verifier = self.getQuorumVerifier();
-            if (connectingFollowers.contains(self.getId()) &&
-                                            verifier.containsQuorum(connectingFollowers)) {
+            if (connectingFollowers.contains(self.getId()) && verifier.containsQuorum(connectingFollowers)) {
                 waitingForNewEpoch = false;
                 self.setAcceptedEpoch(epoch);
                 connectingFollowers.notifyAll();

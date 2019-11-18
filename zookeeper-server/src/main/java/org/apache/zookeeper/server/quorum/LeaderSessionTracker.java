@@ -128,8 +128,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
     }
 
     public boolean touchSession(long sessionId, int sessionTimeout) {
-        if (localSessionTracker != null &&
-            localSessionTracker.touchSession(sessionId, sessionTimeout)) {
+        if (localSessionTracker != null && localSessionTracker.touchSession(sessionId, sessionTimeout)) {
             return true;
         }
         return globalSessionTracker.touchSession(sessionId, sessionTimeout);

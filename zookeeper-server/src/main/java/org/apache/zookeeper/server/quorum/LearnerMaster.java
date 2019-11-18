@@ -135,6 +135,7 @@ public interface LearnerMaster {
 
     /**
      * mark session as alive
+     * 将会话标记为活动
      * @param sess session id
      * @param to timeout
      */

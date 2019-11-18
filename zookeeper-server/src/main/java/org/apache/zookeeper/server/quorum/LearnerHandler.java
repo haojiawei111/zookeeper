@@ -612,8 +612,7 @@ public class LearnerHandler extends ZooKeeperThread {
                     break;
                 case Leader.PING: // ping
                     // Process the touches
-                    ByteArrayInputStream bis = new ByteArrayInputStream(qp
-                            .getData());
+                    ByteArrayInputStream bis = new ByteArrayInputStream(qp.getData());
                     DataInputStream dis = new DataInputStream(bis);
                     while (dis.available() > 0) {
                         long sess = dis.readLong();

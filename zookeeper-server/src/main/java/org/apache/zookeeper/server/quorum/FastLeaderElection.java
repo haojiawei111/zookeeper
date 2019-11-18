@@ -605,15 +605,13 @@ public class FastLeaderElection implements Election {
             // 创建WorkerSender
             this.ws = new WorkerSender(manager);
             // 新创建线程
-            this.wsThread = new Thread(this.ws,
-                    "WorkerSender[myid=" + self.getId() + "]");
+            this.wsThread = new Thread(this.ws, "WorkerSender[myid=" + self.getId() + "]");
             this.wsThread.setDaemon(true);// 设置为守护线程
 
             // 创建WorkerReceiver
             this.wr = new WorkerReceiver(manager);
             // 创建线程
-            this.wrThread = new Thread(this.wr,
-                    "WorkerReceiver[myid=" + self.getId() + "]");
+            this.wrThread = new Thread(this.wr, "WorkerReceiver[myid=" + self.getId() + "]");
             this.wrThread.setDaemon(true);// 设置为守护线程
         }
 
@@ -794,7 +792,7 @@ public class FastLeaderElection implements Election {
                     proposedZxid,//推选的leader的zxid
                     logicalclock.get(),//逻辑时钟
                     QuorumPeer.ServerState.LOOKING,//服务状态
-                    sid,//服务ID
+                    sid,//TODO: 发给哪个服务器
                     proposedEpoch,// 此次选举所处的时代
                     qv.toString().getBytes());
 
